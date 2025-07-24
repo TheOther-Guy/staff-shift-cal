@@ -52,6 +52,22 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				available: {
+					DEFAULT: 'hsl(var(--available))',
+					foreground: 'hsl(var(--available-foreground))'
+				},
+				'sick-leave': {
+					DEFAULT: 'hsl(var(--sick-leave))',
+					foreground: 'hsl(var(--sick-leave-foreground))'
+				},
+				'day-off': {
+					DEFAULT: 'hsl(var(--day-off))',
+					foreground: 'hsl(var(--day-off-foreground))'
+				},
+				weekend: {
+					DEFAULT: 'hsl(var(--weekend))',
+					foreground: 'hsl(var(--weekend-foreground))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

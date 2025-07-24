@@ -1,0 +1,146 @@
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Plus } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { TimeOffType, TimeOffEntry } from './StaffCalendar';
+
+interface AddTimeOffDialogProps {
+  stores: string[];
+  employees: { id: string; name: string; storeId: string }[];
+  selectedStore?: string;
+  onAddEntry: (entry: Omit<TimeOffEntry, 'id'>) => void;
+}
+
+export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry }: AddTimeOffDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState<Date>();
+  const [employeeId, setEmployeeId] = useState('');
+  const [type, setType] = useState<TimeOffType>('day-off');
+  const [notes, setNotes] = useState('');
+
+  const filteredEmployees = selectedStore 
+    ? employees.filter(emp => emp.storeId === selectedStore)
+    : employees;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!date || !employeeId) return;
+
+    onAddEntry({
+      employeeId,
+      date,
+      type,
+      notes: notes.trim() || undefined,
+    });
+
+    // Reset form
+    setDate(undefined);
+    setEmployeeId('');
+    setType('day-off');
+    setNotes('');
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-gradient-to-r from-primary to-primary/90">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Time Off
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add Time Off Entry</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="employee">Employee</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredEmployees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Time Off Type</Label>
+            <Select value={type} onValueChange={(value: TimeOffType) => setType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day-off">Day Off</SelectItem>
+                <SelectItem value="sick-leave">Sick Leave</SelectItem>
+                <SelectItem value="weekend">Weekend</SelectItem>
+                <SelectItem value="available">Available</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes..."
+              className="resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!date || !employeeId}>
+              Add Entry
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
