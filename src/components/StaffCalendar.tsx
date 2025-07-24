@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export type TimeOffType = 'sick-leave' | 'day-off' | 'weekend' | 'available';
@@ -10,7 +10,8 @@ export type TimeOffType = 'sick-leave' | 'day-off' | 'weekend' | 'available';
 export interface TimeOffEntry {
   id: string;
   employeeId: string;
-  date: Date;
+  startDate: Date;
+  endDate: Date;
   type: TimeOffType;
   notes?: string;
 }
@@ -40,10 +41,13 @@ export function StaffCalendar({ entries, selectedEmployee, onDateSelect, classNa
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const getEntriesForDate = (date: Date) => {
-    return entries.filter(entry => 
-      isSameDay(entry.date, date) && 
-      (!selectedEmployee || entry.employeeId === selectedEmployee)
-    );
+    return entries.filter(entry => {
+      const isInRange = isWithinInterval(startOfDay(date), {
+        start: startOfDay(entry.startDate),
+        end: endOfDay(entry.endDate)
+      });
+      return isInRange && (!selectedEmployee || entry.employeeId === selectedEmployee);
+    });
   };
 
   const getDayContent = (date: Date) => {

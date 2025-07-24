@@ -26,13 +26,18 @@ const generateMockEntries = (): TimeOffEntry[] => {
   const types: TimeOffType[] = ['sick-leave', 'day-off', 'weekend', 'available'];
   
   for (let i = 0; i < 50; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + Math.floor(Math.random() * 60) - 30);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 60) - 30);
+    
+    const endDate = new Date(startDate);
+    // Some entries span multiple days (1-3 days randomly)
+    endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 3));
     
     entries.push({
       id: `entry-${i}`,
       employeeId: mockEmployees[Math.floor(Math.random() * mockEmployees.length)].id,
-      date,
+      startDate,
+      endDate,
       type: types[Math.floor(Math.random() * types.length)],
       notes: Math.random() > 0.7 ? 'Sample note' : undefined,
     });
@@ -63,11 +68,14 @@ const Dashboard = () => {
 
       // Date range filter
       if (dateFrom || dateTo) {
-        const entryDate = startOfDay(entry.date);
+        const entryStartDate = startOfDay(entry.startDate);
+        const entryEndDate = endOfDay(entry.endDate);
         const fromDate = dateFrom ? startOfDay(dateFrom) : new Date(0);
         const toDate = dateTo ? endOfDay(dateTo) : new Date();
         
-        if (!isWithinInterval(entryDate, { start: fromDate, end: toDate })) {
+        // Check if entry range overlaps with filter range
+        const overlaps = entryStartDate <= toDate && entryEndDate >= fromDate;
+        if (!overlaps) {
           return false;
         }
       }
