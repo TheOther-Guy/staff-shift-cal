@@ -4,8 +4,10 @@ import { AddTimeOffDialog } from '@/components/AddTimeOffDialog';
 import { FilterControls } from '@/components/FilterControls';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Users, Calendar, TrendingUp } from 'lucide-react';
-import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Building2, Users, Calendar, TrendingUp, Download, ChevronDown } from 'lucide-react';
+import { isWithinInterval, startOfDay, endOfDay, format, startOfMonth, endOfMonth } from 'date-fns';
 
 // Mock data
 const mockStores = ['Downtown Store', 'Mall Location', 'Westside Branch', 'Airport Shop'];
@@ -107,6 +109,51 @@ const Dashboard = () => {
     return { totalEntries, sickLeave, dayOffs, weekends };
   }, [filteredEntries]);
 
+  const exportToCSV = (exportType: 'month-to-date' | 'current-month') => {
+    const now = new Date();
+    let exportEntries = filteredEntries;
+
+    if (exportType === 'month-to-date') {
+      const monthStart = startOfMonth(now);
+      exportEntries = filteredEntries.filter(entry => 
+        entry.startDate >= monthStart && entry.startDate <= now
+      );
+    } else if (exportType === 'current-month') {
+      const monthStart = startOfMonth(now);
+      const monthEnd = endOfMonth(now);
+      exportEntries = filteredEntries.filter(entry => 
+        entry.startDate >= monthStart && entry.startDate <= monthEnd
+      );
+    }
+
+    const csvHeaders = ['Employee Name', 'Store', 'Start Date', 'End Date', 'Type', 'Notes'];
+    const csvRows = exportEntries.map(entry => {
+      const employee = mockEmployees.find(emp => emp.id === entry.employeeId);
+      return [
+        employee?.name || 'Unknown',
+        employee?.storeId || 'Unknown',
+        format(entry.startDate, 'yyyy-MM-dd'),
+        format(entry.endDate, 'yyyy-MM-dd'),
+        entry.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        entry.notes || ''
+      ];
+    });
+
+    const csvContent = [csvHeaders, ...csvRows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `employee-attendance-${exportType}-${format(now, 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -116,12 +163,31 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-foreground">Staff Schedule Manager</h1>
             <p className="text-muted-foreground">Manage employee time off, sick leave, and schedules</p>
           </div>
-          <AddTimeOffDialog
-            stores={mockStores}
-            employees={mockEmployees}
-            selectedStore={selectedStore !== 'all' ? selectedStore : undefined}
-            onAddEntry={handleAddEntry}
-          />
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportToCSV('month-to-date')}>
+                  Month to Date
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToCSV('current-month')}>
+                  Current Month
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AddTimeOffDialog
+              stores={mockStores}
+              employees={mockEmployees}
+              selectedStore={selectedStore !== 'all' ? selectedStore : undefined}
+              onAddEntry={handleAddEntry}
+            />
+          </div>
         </div>
 
         {/* Stats Cards */}
