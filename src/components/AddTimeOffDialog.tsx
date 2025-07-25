@@ -13,9 +13,21 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TimeOffType, TimeOffEntry } from './StaffCalendar';
 
+interface Store {
+  id: string;
+  name: string;
+  company_id: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  store_id: string;
+}
+
 interface AddTimeOffDialogProps {
-  stores: string[];
-  employees: { id: string; name: string; storeId: string }[];
+  stores: Store[];
+  employees: Employee[];
   selectedStore?: string;
   onAddEntry: (entry: Omit<TimeOffEntry, 'id'>) => void;
 }
@@ -28,7 +40,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
   const [notes, setNotes] = useState('');
 
   const filteredEmployees = selectedStore 
-    ? employees.filter(emp => emp.storeId === selectedStore)
+    ? employees.filter(emp => emp.store_id === selectedStore)
     : employees;
 
   const handleSubmit = (e: React.FormEvent) => {

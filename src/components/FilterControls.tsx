@@ -9,9 +9,21 @@ import { CalendarIcon, Filter, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+interface Store {
+  id: string;
+  name: string;
+  company_id: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  store_id: string;
+}
+
 interface FilterControlsProps {
-  stores: string[];
-  employees: { id: string; name: string; storeId: string }[];
+  stores: Store[];
+  employees: Employee[];
   selectedStore: string;
   selectedEmployee: string;
   dateFrom: Date | undefined;
@@ -36,11 +48,11 @@ export function FilterControls({
   onDateToChange,
   onClearFilters,
 }: FilterControlsProps) {
-  const filteredEmployees = selectedStore && selectedStore !== 'all'
-    ? employees.filter(emp => emp.storeId === selectedStore)
+  const filteredEmployees = selectedStore && selectedStore !== ''
+    ? employees.filter(emp => emp.store_id === selectedStore)
     : employees;
 
-  const hasActiveFilters = selectedStore !== 'all' || selectedEmployee !== 'all' || dateFrom || dateTo;
+  const hasActiveFilters = selectedStore !== '' || selectedEmployee !== '' || dateFrom || dateTo;
 
   return (
     <Card>
@@ -67,10 +79,10 @@ export function FilterControls({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Stores</SelectItem>
+                <SelectItem value="">All Stores</SelectItem>
                 {stores.map((store) => (
-                  <SelectItem key={store} value={store}>
-                    {store}
+                  <SelectItem key={store.id} value={store.id}>
+                    {store.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -84,7 +96,7 @@ export function FilterControls({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
+                <SelectItem value="">All Employees</SelectItem>
                 {filteredEmployees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}

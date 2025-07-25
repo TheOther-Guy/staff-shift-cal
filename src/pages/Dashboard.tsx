@@ -1,250 +1,336 @@
-import React, { useState, useMemo } from 'react';
-import { StaffCalendar, TimeOffEntry, TimeOffType } from '@/components/StaffCalendar';
-import { AddTimeOffDialog } from '@/components/AddTimeOffDialog';
-import { FilterControls } from '@/components/FilterControls';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Building2, Users, Calendar, TrendingUp, Download, ChevronDown } from 'lucide-react';
-import { isWithinInterval, startOfDay, endOfDay, format, startOfMonth, endOfMonth } from 'date-fns';
+import { Download, LogOut, Plus } from 'lucide-react';
+import { StaffCalendar, TimeOffEntry } from '@/components/StaffCalendar';
+import { FilterControls } from '@/components/FilterControls';
+import { AddTimeOffDialog } from '@/components/AddTimeOffDialog';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data
-const mockStores = ['Downtown Store', 'Mall Location', 'Westside Branch', 'Airport Shop'];
+interface Company {
+  id: string;
+  name: string;
+}
 
-const mockEmployees = [
-  { id: '1', name: 'John Smith', storeId: 'Downtown Store' },
-  { id: '2', name: 'Sarah Johnson', storeId: 'Downtown Store' },
-  { id: '3', name: 'Mike Davis', storeId: 'Mall Location' },
-  { id: '4', name: 'Emma Wilson', storeId: 'Mall Location' },
-  { id: '5', name: 'David Brown', storeId: 'Westside Branch' },
-  { id: '6', name: 'Lisa Garcia', storeId: 'Westside Branch' },
-  { id: '7', name: 'James Miller', storeId: 'Airport Shop' },
-  { id: '8', name: 'Anna Taylor', storeId: 'Airport Shop' },
-];
+interface Store {
+  id: string;
+  name: string;
+  company_id: string;
+}
 
-const generateMockEntries = (): TimeOffEntry[] => {
-  const entries: TimeOffEntry[] = [];
-  const types: TimeOffType[] = ['sick-leave', 'day-off', 'weekend', 'available'];
+interface Employee {
+  id: string;
+  name: string;
+  store_id: string;
+}
+
+export default function Dashboard() {
+  const { user, profile, signOut, loading } = useAuth();
+  const { toast } = useToast();
   
-  for (let i = 0; i < 50; i++) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 60) - 30);
-    
-    const endDate = new Date(startDate);
-    // Some entries span multiple days (1-3 days randomly)
-    endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 3));
-    
-    entries.push({
-      id: `entry-${i}`,
-      employeeId: mockEmployees[Math.floor(Math.random() * mockEmployees.length)].id,
-      startDate,
-      endDate,
-      type: types[Math.floor(Math.random() * types.length)],
-      notes: Math.random() > 0.7 ? 'Sample note' : undefined,
-    });
-  }
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [timeOffEntries, setTimeOffEntries] = useState<TimeOffEntry[]>([]);
   
-  return entries;
-};
-
-const Dashboard = () => {
-  const [entries, setEntries] = useState<TimeOffEntry[]>(generateMockEntries());
-  const [selectedStore, setSelectedStore] = useState('all');
-  const [selectedEmployee, setSelectedEmployee] = useState('all');
+  const [selectedStore, setSelectedStore] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  useEffect(() => {
+    if (profile) {
+      fetchData();
+    }
+  }, [profile]);
+
+  const fetchData = async () => {
+    try {
+      // Fetch companies
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('companies')
+        .select('*');
+
+      if (companiesError) throw companiesError;
+      setCompanies(companiesData || []);
+
+      // Fetch stores
+      const { data: storesData, error: storesError } = await supabase
+        .from('stores')
+        .select('*');
+
+      if (storesError) throw storesError;
+      setStores(storesData || []);
+
+      // Fetch employees
+      const { data: employeesData, error: employeesError } = await supabase
+        .from('employees')
+        .select('*');
+
+      if (employeesError) throw employeesError;
+      setEmployees(employeesData || []);
+
+      // Fetch time off entries
+      const { data: entriesData, error: entriesError } = await supabase
+        .from('time_off_entries')
+        .select(`
+          *,
+          employees!inner(
+            id,
+            name,
+            stores!inner(
+              id,
+              name,
+              company_id
+            )
+          )
+        `);
+
+      if (entriesError) throw entriesError;
+      
+      const formattedEntries: TimeOffEntry[] = (entriesData || []).map(entry => ({
+        id: entry.id,
+        employeeId: entry.employee_id,
+        startDate: new Date(entry.start_date),
+        endDate: new Date(entry.end_date),
+        type: entry.type as 'sick-leave' | 'day-off' | 'weekend' | 'available',
+        notes: entry.notes || undefined
+      }));
+      
+      setTimeOffEntries(formattedEntries);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddEntry = async (entry: Omit<TimeOffEntry, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('time_off_entries')
+        .insert({
+          employee_id: entry.employeeId,
+          start_date: entry.startDate.toISOString().split('T')[0],
+          end_date: entry.endDate.toISOString().split('T')[0],
+          type: entry.type,
+          notes: entry.notes
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newEntry: TimeOffEntry = {
+        id: data.id,
+        employeeId: data.employee_id,
+        startDate: new Date(data.start_date),
+        endDate: new Date(data.end_date),
+        type: data.type as 'sick-leave' | 'day-off' | 'weekend' | 'available',
+        notes: data.notes || undefined
+      };
+
+      setTimeOffEntries(prev => [...prev, newEntry]);
+      
+      toast({
+        title: "Success",
+        description: "Time off entry added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding entry:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add time off entry",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredEntries = useMemo(() => {
-    return entries.filter(entry => {
-      // Store filter
-      if (selectedStore !== 'all') {
-        const employee = mockEmployees.find(emp => emp.id === entry.employeeId);
-        if (!employee || employee.storeId !== selectedStore) return false;
-      }
+    return timeOffEntries.filter(entry => {
+      const employee = employees.find(emp => emp.id === entry.employeeId);
+      if (!employee) return false;
 
-      // Employee filter
-      if (selectedEmployee !== 'all' && entry.employeeId !== selectedEmployee) {
+      const store = stores.find(s => s.id === employee.store_id);
+      if (!store) return false;
+
+      // Filter by store access based on user role
+      if (profile?.role === 'store_manager' && store.id !== profile.store_id) {
         return false;
       }
 
-      // Date range filter
-      if (dateFrom || dateTo) {
-        const entryStartDate = startOfDay(entry.startDate);
-        const entryEndDate = endOfDay(entry.endDate);
-        const fromDate = dateFrom ? startOfDay(dateFrom) : new Date(0);
-        const toDate = dateTo ? endOfDay(dateTo) : new Date();
-        
-        // Check if entry range overlaps with filter range
-        const overlaps = entryStartDate <= toDate && entryEndDate >= fromDate;
-        if (!overlaps) {
-          return false;
-        }
+      if (profile?.role === 'company_manager' && store.company_id !== profile.company_id) {
+        return false;
       }
 
+      // Apply user filters
+      if (selectedStore && employee.store_id !== selectedStore) return false;
+      if (selectedEmployee && entry.employeeId !== selectedEmployee) return false;
+      
+      if (dateFrom && entry.endDate < dateFrom) return false;
+      if (dateTo && entry.startDate > dateTo) return false;
+      
       return true;
     });
-  }, [entries, selectedStore, selectedEmployee, dateFrom, dateTo]);
+  }, [timeOffEntries, employees, stores, profile, selectedStore, selectedEmployee, dateFrom, dateTo]);
 
-  const handleAddEntry = (newEntry: Omit<TimeOffEntry, 'id'>) => {
-    setEntries(prev => [
-      ...prev,
-      { ...newEntry, id: `entry-${Date.now()}` }
-    ]);
-  };
+  const availableStores = useMemo(() => {
+    if (!profile) return [];
+    
+    if (profile.role === 'admin') {
+      return stores;
+    } else if (profile.role === 'company_manager') {
+      return stores.filter(store => store.company_id === profile.company_id);
+    } else {
+      return stores.filter(store => store.id === profile.store_id);
+    }
+  }, [stores, profile]);
+
+  const availableEmployees = useMemo(() => {
+    const storeIds = availableStores.map(store => store.id);
+    return employees.filter(emp => storeIds.includes(emp.store_id));
+  }, [employees, availableStores]);
 
   const handleClearFilters = () => {
-    setSelectedStore('all');
-    setSelectedEmployee('all');
+    setSelectedStore('');
+    setSelectedEmployee('');
     setDateFrom(undefined);
     setDateTo(undefined);
   };
 
   const stats = useMemo(() => {
     const totalEntries = filteredEntries.length;
-    const sickLeave = filteredEntries.filter(e => e.type === 'sick-leave').length;
-    const dayOffs = filteredEntries.filter(e => e.type === 'day-off').length;
-    const weekends = filteredEntries.filter(e => e.type === 'weekend').length;
+    const sickLeave = filteredEntries.filter(entry => entry.type === 'sick-leave').length;
+    const dayOff = filteredEntries.filter(entry => entry.type === 'day-off').length;
+    const weekend = filteredEntries.filter(entry => entry.type === 'weekend').length;
 
-    return { totalEntries, sickLeave, dayOffs, weekends };
+    return { totalEntries, sickLeave, dayOff, weekend };
   }, [filteredEntries]);
 
-  const exportToCSV = (exportType: 'month-to-date' | 'current-month') => {
-    const now = new Date();
-    let exportEntries = filteredEntries;
-
-    if (exportType === 'month-to-date') {
-      const monthStart = startOfMonth(now);
-      exportEntries = filteredEntries.filter(entry => 
-        entry.startDate >= monthStart && entry.startDate <= now
-      );
-    } else if (exportType === 'current-month') {
-      const monthStart = startOfMonth(now);
-      const monthEnd = endOfMonth(now);
-      exportEntries = filteredEntries.filter(entry => 
-        entry.startDate >= monthStart && entry.startDate <= monthEnd
-      );
-    }
-
-    const csvHeaders = ['Employee Name', 'Store', 'Start Date', 'End Date', 'Type', 'Notes'];
-    const csvRows = exportEntries.map(entry => {
-      const employee = mockEmployees.find(emp => emp.id === entry.employeeId);
-      return [
-        employee?.name || 'Unknown',
-        employee?.storeId || 'Unknown',
-        format(entry.startDate, 'yyyy-MM-dd'),
-        format(entry.endDate, 'yyyy-MM-dd'),
-        entry.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        entry.notes || ''
-      ];
+  const exportToCSV = () => {
+    const csvData = filteredEntries.map(entry => {
+      const employee = employees.find(emp => emp.id === entry.employeeId);
+      const store = stores.find(s => s.id === employee?.store_id);
+      const company = companies.find(c => c.id === store?.company_id);
+      
+      return {
+        'Company': company?.name || '',
+        'Store': store?.name || '',
+        'Employee': employee?.name || '',
+        'Type': entry.type,
+        'Start Date': entry.startDate.toLocaleDateString(),
+        'End Date': entry.endDate.toLocaleDateString(),
+        'Notes': entry.notes || ''
+      };
     });
 
-    const csvContent = [csvHeaders, ...csvRows]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n');
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `employee-attendance-${exportType}-${format(now, 'yyyy-MM-dd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Staff Schedule Manager</h1>
-            <p className="text-muted-foreground">Manage employee time off, sick leave, and schedules</p>
+            <h1 className="text-3xl font-bold">Staff Schedule Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {profile.full_name} ({profile.role.replace('_', ' ')})
+            </p>
           </div>
           <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => exportToCSV('month-to-date')}>
-                  Month to Date
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportToCSV('current-month')}>
-                  Current Month
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <AddTimeOffDialog
-              stores={mockStores}
-              employees={mockEmployees}
-              selectedStore={selectedStore !== 'all' ? selectedStore : undefined}
+            <Button onClick={exportToCSV} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <AddTimeOffDialog 
+              stores={availableStores}
+              employees={availableEmployees}
+              selectedStore={selectedStore}
               onAddEntry={handleAddEntry}
             />
+            {profile.role === 'admin' && (
+              <Button onClick={() => window.location.href = '/admin'} variant="outline">
+                Admin Panel
+              </Button>
+            )}
+            <Button onClick={signOut} variant="outline">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Entries</p>
-                  <p className="text-2xl font-bold">{stats.totalEntries}</p>
-                </div>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalEntries}</div>
             </CardContent>
           </Card>
-
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-sick-leave rounded-full" />
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Sick Leave</p>
-                  <p className="text-2xl font-bold">{stats.sickLeave}</p>
-                </div>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Sick Leave</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.sickLeave}</div>
             </CardContent>
           </Card>
-
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-day-off rounded-full" />
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Day Offs</p>
-                  <p className="text-2xl font-bold">{stats.dayOffs}</p>
-                </div>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Days Off</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.dayOff}</div>
             </CardContent>
           </Card>
-
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-weekend rounded-full" />
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Weekends</p>
-                  <p className="text-2xl font-bold">{stats.weekends}</p>
-                </div>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Weekend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.weekend}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <FilterControls
-          stores={mockStores}
-          employees={mockEmployees}
+          stores={availableStores}
+          employees={availableEmployees}
           selectedStore={selectedStore}
           selectedEmployee={selectedEmployee}
           dateFrom={dateFrom}
@@ -257,13 +343,22 @@ const Dashboard = () => {
         />
 
         {/* Calendar */}
-        <StaffCalendar
-          entries={filteredEntries}
-          selectedEmployee={selectedEmployee !== 'all' ? selectedEmployee : undefined}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff Calendar</CardTitle>
+            <CardDescription>
+              View time-off entries and schedule information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StaffCalendar
+              entries={filteredEntries}
+              selectedEmployee={selectedEmployee}
+              onDateSelect={setSelectedDate}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
