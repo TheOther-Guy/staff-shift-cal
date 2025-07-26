@@ -279,6 +279,14 @@ export default function Dashboard() {
               selectedStore={selectedStore}
               onAddEntry={handleAddEntry}
             />
+            <Button onClick={() => window.location.href = '/profile'} variant="outline">
+              Profile
+            </Button>
+            {(profile.role === 'admin' || profile.role === 'company_manager') && (
+              <Button onClick={() => window.location.href = '/analytics'} variant="outline">
+                Analytics
+              </Button>
+            )}
             {profile.role === 'admin' && (
               <Button onClick={() => window.location.href = '/admin'} variant="outline">
                 Admin Panel
