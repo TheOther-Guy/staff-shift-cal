@@ -79,7 +79,7 @@ export function FilterControls({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Stores</SelectItem>
+                <SelectItem value="all">All Stores</SelectItem>
                 {stores.map((store) => (
                   <SelectItem key={store.id} value={store.id}>
                     {store.name}
@@ -96,7 +96,7 @@ export function FilterControls({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Employees</SelectItem>
+                <SelectItem value="all">All Employees</SelectItem>
                 {filteredEmployees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}

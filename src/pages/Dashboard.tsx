@@ -35,8 +35,8 @@ export default function Dashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [timeOffEntries, setTimeOffEntries] = useState<TimeOffEntry[]>([]);
   
-  const [selectedStore, setSelectedStore] = useState<string>('');
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [selectedStore, setSelectedStore] = useState<string>('all');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -170,8 +170,8 @@ export default function Dashboard() {
       }
 
       // Apply user filters
-      if (selectedStore && employee.store_id !== selectedStore) return false;
-      if (selectedEmployee && entry.employeeId !== selectedEmployee) return false;
+      if (selectedStore && selectedStore !== 'all' && employee.store_id !== selectedStore) return false;
+      if (selectedEmployee && selectedEmployee !== 'all' && entry.employeeId !== selectedEmployee) return false;
       
       if (dateFrom && entry.endDate < dateFrom) return false;
       if (dateTo && entry.startDate > dateTo) return false;
@@ -198,8 +198,8 @@ export default function Dashboard() {
   }, [employees, availableStores]);
 
   const handleClearFilters = () => {
-    setSelectedStore('');
-    setSelectedEmployee('');
+    setSelectedStore('all');
+    setSelectedEmployee('all');
     setDateFrom(undefined);
     setDateTo(undefined);
   };
