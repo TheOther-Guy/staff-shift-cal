@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      brands: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -69,6 +101,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          brand_id: string | null
           company_id: string | null
           created_at: string
           email: string
@@ -80,6 +113,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand_id?: string | null
           company_id?: string | null
           created_at?: string
           email: string
@@ -91,6 +125,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brand_id?: string | null
           company_id?: string | null
           created_at?: string
           email?: string
@@ -102,6 +137,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_company_id_fkey"
             columns: ["company_id"]
@@ -120,6 +162,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          brand_id: string | null
           company_id: string
           created_at: string
           id: string
@@ -127,6 +170,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_id?: string | null
           company_id: string
           created_at?: string
           id?: string
@@ -134,6 +178,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_id?: string | null
           company_id?: string
           created_at?: string
           id?: string
@@ -141,6 +186,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stores_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stores_company_id_fkey"
             columns: ["company_id"]
@@ -196,6 +248,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_brand_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string

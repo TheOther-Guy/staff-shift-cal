@@ -1,37 +1,54 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Building, Store, Users, Calendar } from 'lucide-react';
+import { ArrowLeft, Building, Store, Users, Calendar, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
+import { FilterAnalytics } from '@/components/FilterAnalytics';
 
-interface AnalyticsData {
-  companies: Array<{
-    id: string;
-    name: string;
-    storeCount: number;
-    employeeCount: number;
-    timeOffCount: number;
-  }>;
-  stores: Array<{
-    id: string;
-    name: string;
-    company_name: string;
-    employeeCount: number;
-    timeOffCount: number;
-  }>;
-  employees: Array<{
-    id: string;
-    name: string;
-    store_name: string;
-    company_name: string;
-    timeOffCount: number;
-    sickLeaveCount: number;
-    dayOffCount: number;
-  }>;
+interface Company {
+  id: string;
+  name: string;
+  brandCount?: number;
+  storeCount?: number;
+  employeeCount?: number;
+  timeOffCount?: number;
+}
+
+interface Brand {
+  id: string;
+  name: string;
+  company_id: string;
+  company_name?: string;
+  storeCount?: number;
+  employeeCount?: number;
+  timeOffCount?: number;
+}
+
+interface Store {
+  id: string;
+  name: string;
+  brand_id: string | null;
+  brand_name?: string;
+  company_id: string;
+  company_name?: string;
+  employeeCount?: number;
+  timeOffCount?: number;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  store_id: string;
+  store_name?: string;
+  brand_name?: string;
+  company_name?: string;
+  timeOffCount?: number;
+  sickLeaveCount?: number;
+  dayOffCount?: number;
 }
 
 export default function Analytics() {
@@ -39,15 +56,19 @@ export default function Analytics() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [data, setData] = useState<AnalyticsData>({
-    companies: [],
-    stores: [],
-    employees: []
-  });
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  const [selectedCompany, setSelectedCompany] = useState('all');
+  const [selectedBrand, setSelectedBrand] = useState('all');
+  const [selectedStore, setSelectedStore] = useState('all');
+  
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (profile && (profile.role === 'admin' || profile.role === 'company_manager')) {
+    if (profile && (profile.role === 'admin' || profile.role === 'company_manager' || profile.role === 'brand_manager')) {
       fetchAnalytics();
     }
   }, [profile]);
@@ -56,111 +77,113 @@ export default function Analytics() {
     try {
       setIsLoading(true);
 
-      // Fetch companies with counts
-      const { data: companiesData } = await supabase
-        .from('companies')
-        .select(`
-          id,
-          name,
-          stores(
-            id,
-            employees(
-              id,
-              time_off_entries(id)
-            )
-          )
-        `);
+      // Fetch companies
+      let companiesQuery = supabase.from('companies').select('id, name');
+      if (profile?.role === 'company_manager' && profile?.company_id) {
+        companiesQuery = companiesQuery.eq('id', profile.company_id);
+      } else if (profile?.role === 'brand_manager' && profile?.company_id) {
+        companiesQuery = companiesQuery.eq('id', profile.company_id);
+      }
+      const { data: companiesData } = await companiesQuery;
 
-      // Fetch stores with employee and time-off counts
-      let storesQuery = supabase
-        .from('stores')
-        .select(`
-          id,
-          name,
-          company_id,
-          companies(name),
-          employees(
-            id,
-            time_off_entries(id)
-          )
-        `);
+      // Fetch brands
+      let brandsQuery = supabase.from('brands').select('id, name, company_id, companies(name)');
+      if (profile?.role === 'company_manager' && profile?.company_id) {
+        brandsQuery = brandsQuery.eq('company_id', profile.company_id);
+      } else if (profile?.role === 'brand_manager' && profile?.brand_id) {
+        brandsQuery = brandsQuery.eq('id', profile.brand_id);
+      }
+      const { data: brandsData } = await brandsQuery;
 
-      // Filter by company for company managers
+      // Fetch stores with relationships
+      let storesQuery = supabase.from('stores').select(`
+        id, name, brand_id, company_id,
+        brands(name),
+        companies(name),
+        employees(id, time_off_entries(id))
+      `);
+      
       if (profile?.role === 'company_manager' && profile?.company_id) {
         storesQuery = storesQuery.eq('company_id', profile.company_id);
+      } else if (profile?.role === 'brand_manager' && profile?.brand_id) {
+        storesQuery = storesQuery.eq('brand_id', profile.brand_id);
       }
-
       const { data: storesData } = await storesQuery;
 
-      // Fetch employees with time-off details
-      let employeesQuery = supabase
-        .from('employees')
-        .select(`
-          id,
-          name,
-          store_id,
-          stores!inner(
-            id,
-            name,
-            company_id,
-            companies(name)
-          ),
-          time_off_entries(
-            id,
-            type
-          )
-        `);
-
-      // Filter by company for company managers
+      // Fetch employees with relationships
+      let employeesQuery = supabase.from('employees').select(`
+        id, name, store_id,
+        stores!inner(id, name, brand_id, company_id, brands(name), companies(name)),
+        time_off_entries(id, type)
+      `);
+      
       if (profile?.role === 'company_manager' && profile?.company_id) {
         employeesQuery = employeesQuery.eq('stores.company_id', profile.company_id);
+      } else if (profile?.role === 'brand_manager' && profile?.brand_id) {
+        employeesQuery = employeesQuery.eq('stores.brand_id', profile.brand_id);
       }
-
       const { data: employeesData } = await employeesQuery;
 
-      // Process the data
-      const processedCompanies = (companiesData || [])
-        .filter(company => {
-          // Filter companies for company managers
-          if (profile?.role === 'company_manager') {
-            return company.id === profile.company_id;
-          }
-          return true;
-        })
-        .map(company => ({
+      // Process companies
+      const processedCompanies = (companiesData || []).map(company => {
+        const companyStores = (storesData || []).filter(store => store.company_id === company.id);
+        const companyEmployees = (employeesData || []).filter(emp => emp.stores?.company_id === company.id);
+        
+        return {
           id: company.id,
           name: company.name,
-          storeCount: company.stores?.length || 0,
-          employeeCount: company.stores?.reduce((acc, store) => acc + (store.employees?.length || 0), 0) || 0,
-          timeOffCount: company.stores?.reduce((acc, store) => 
-            acc + (store.employees?.reduce((empAcc, emp) => 
-              empAcc + (emp.time_off_entries?.length || 0), 0) || 0), 0) || 0
-        }));
+          brandCount: (brandsData || []).filter(brand => brand.company_id === company.id).length,
+          storeCount: companyStores.length,
+          employeeCount: companyEmployees.length,
+          timeOffCount: companyEmployees.reduce((acc, emp) => acc + (emp.time_off_entries?.length || 0), 0)
+        };
+      });
 
+      // Process brands
+      const processedBrands = (brandsData || []).map(brand => {
+        const brandStores = (storesData || []).filter(store => store.brand_id === brand.id);
+        const brandEmployees = (employeesData || []).filter(emp => emp.stores?.brand_id === brand.id);
+        
+        return {
+          id: brand.id,
+          name: brand.name,
+          company_id: brand.company_id,
+          company_name: brand.companies?.name || '',
+          storeCount: brandStores.length,
+          employeeCount: brandEmployees.length,
+          timeOffCount: brandEmployees.reduce((acc, emp) => acc + (emp.time_off_entries?.length || 0), 0)
+        };
+      });
+
+      // Process stores
       const processedStores = (storesData || []).map(store => ({
         id: store.id,
         name: store.name,
+        brand_id: store.brand_id,
+        brand_name: store.brands?.name || 'No Brand',
+        company_id: store.company_id,
         company_name: store.companies?.name || '',
         employeeCount: store.employees?.length || 0,
-        timeOffCount: store.employees?.reduce((acc, emp) => 
-          acc + (emp.time_off_entries?.length || 0), 0) || 0
+        timeOffCount: store.employees?.reduce((acc, emp) => acc + (emp.time_off_entries?.length || 0), 0) || 0
       }));
 
+      // Process employees
       const processedEmployees = (employeesData || []).map(employee => ({
         id: employee.id,
         name: employee.name,
+        store_id: employee.store_id,
         store_name: employee.stores?.name || '',
+        brand_name: employee.stores?.brands?.name || 'No Brand',
         company_name: employee.stores?.companies?.name || '',
         timeOffCount: employee.time_off_entries?.length || 0,
         sickLeaveCount: employee.time_off_entries?.filter(entry => entry.type === 'sick-leave').length || 0,
         dayOffCount: employee.time_off_entries?.filter(entry => entry.type === 'day-off').length || 0
       }));
 
-      setData({
-        companies: processedCompanies,
-        stores: processedStores,
-        employees: processedEmployees
-      });
+      setCompanies(processedCompanies);
+      setBrands(processedBrands);
+      setStores(processedStores);
+      setEmployees(processedEmployees);
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -174,16 +197,54 @@ export default function Analytics() {
     }
   };
 
+  const handleClearFilters = () => {
+    setSelectedCompany('all');
+    setSelectedBrand('all');
+    setSelectedStore('all');
+  };
+
+  // Filter data based on selections
+  const filteredData = useMemo(() => {
+    let filteredCompanies = companies;
+    let filteredBrands = brands;
+    let filteredStores = stores;
+    let filteredEmployees = employees;
+
+    if (selectedCompany !== 'all') {
+      filteredCompanies = companies.filter(c => c.id === selectedCompany);
+      filteredBrands = brands.filter(b => b.company_id === selectedCompany);
+      filteredStores = stores.filter(s => s.company_id === selectedCompany);
+      filteredEmployees = employees.filter(e => e.company_name === companies.find(c => c.id === selectedCompany)?.name);
+    }
+
+    if (selectedBrand !== 'all') {
+      filteredStores = filteredStores.filter(s => s.brand_id === selectedBrand);
+      filteredEmployees = filteredEmployees.filter(e => e.brand_name === brands.find(b => b.id === selectedBrand)?.name);
+    }
+
+    if (selectedStore !== 'all') {
+      filteredEmployees = filteredEmployees.filter(e => e.store_id === selectedStore);
+    }
+
+    return {
+      companies: filteredCompanies,
+      brands: filteredBrands,
+      stores: filteredStores,
+      employees: filteredEmployees
+    };
+  }, [companies, brands, stores, employees, selectedCompany, selectedBrand, selectedStore]);
+
   const totals = useMemo(() => {
     return {
-      companies: data.companies.length,
-      stores: data.stores.length,
-      employees: data.employees.length,
-      timeOffEntries: data.employees.reduce((acc, emp) => acc + emp.timeOffCount, 0),
-      sickLeave: data.employees.reduce((acc, emp) => acc + emp.sickLeaveCount, 0),
-      dayOff: data.employees.reduce((acc, emp) => acc + emp.dayOffCount, 0)
+      companies: filteredData.companies.length,
+      brands: filteredData.brands.length,
+      stores: filteredData.stores.length,
+      employees: filteredData.employees.length,
+      timeOffEntries: filteredData.employees.reduce((acc, emp) => acc + (emp.timeOffCount || 0), 0),
+      sickLeave: filteredData.employees.reduce((acc, emp) => acc + (emp.sickLeaveCount || 0), 0),
+      dayOff: filteredData.employees.reduce((acc, emp) => acc + (emp.dayOffCount || 0), 0)
     };
-  }, [data]);
+  }, [filteredData]);
 
   if (loading || isLoading) {
     return (
@@ -193,7 +254,7 @@ export default function Analytics() {
     );
   }
 
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'company_manager')) {
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'company_manager' && profile.role !== 'brand_manager')) {
     return <Navigate to="/" replace />;
   }
 
@@ -213,8 +274,23 @@ export default function Analytics() {
           </div>
         </div>
 
+        {/* Filters */}
+        <FilterAnalytics
+          companies={companies}
+          brands={brands}
+          stores={stores}
+          selectedCompany={selectedCompany}
+          selectedBrand={selectedBrand}
+          selectedStore={selectedStore}
+          onCompanyChange={setSelectedCompany}
+          onBrandChange={setSelectedBrand}
+          onStoreChange={setSelectedStore}
+          onClearFilters={handleClearFilters}
+          userRole={profile.role}
+        />
+
         {/* Overview Stats */}
-        <div className="grid gap-4 md:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-7">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Companies</CardTitle>
@@ -222,6 +298,15 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totals.companies}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Brands</CardTitle>
+              <Layers className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totals.brands}</div>
             </CardContent>
           </Card>
           <Card>
@@ -280,16 +365,44 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {data.companies.map(company => (
+                {filteredData.companies.map(company => (
                   <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-semibold">{company.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {company.storeCount} stores • {company.employeeCount} employees
+                        {company.brandCount} brands • {company.storeCount} stores • {company.employeeCount} employees
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">{company.timeOffCount}</div>
+                      <p className="text-sm text-muted-foreground">time-off entries</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Brands Breakdown */}
+        {(profile.role === 'admin' || profile.role === 'company_manager') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Brands Overview</CardTitle>
+              <CardDescription>Performance metrics by brand</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredData.brands.map(brand => (
+                  <div key={brand.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h3 className="font-semibold">{brand.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {brand.company_name} • {brand.storeCount} stores • {brand.employeeCount} employees
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">{brand.timeOffCount}</div>
                       <p className="text-sm text-muted-foreground">time-off entries</p>
                     </div>
                   </div>
@@ -307,12 +420,12 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.stores.map(store => (
+              {filteredData.stores.map(store => (
                 <div key={store.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h3 className="font-semibold">{store.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {store.company_name} • {store.employeeCount} employees
+                      {store.brand_name} • {store.company_name} • {store.employeeCount} employees
                     </p>
                   </div>
                   <div className="text-right">
@@ -333,12 +446,12 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.employees.map(employee => (
+              {filteredData.employees.map(employee => (
                 <div key={employee.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h3 className="font-semibold">{employee.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {employee.store_name} • {employee.company_name}
+                      {employee.store_name} • {employee.brand_name} • {employee.company_name}
                     </p>
                   </div>
                   <div className="flex gap-6 text-sm">

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, LogOut, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { StaffCalendar, TimeOffEntry } from '@/components/StaffCalendar';
 import { FilterControls } from '@/components/FilterControls';
 import { AddTimeOffDialog } from '@/components/AddTimeOffDialog';
@@ -29,6 +30,7 @@ interface Employee {
 export default function Dashboard() {
   const { user, profile, signOut, loading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [companies, setCompanies] = useState<Company[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -279,16 +281,16 @@ export default function Dashboard() {
               selectedStore={selectedStore}
               onAddEntry={handleAddEntry}
             />
-            <Button onClick={() => window.location.href = '/profile'} variant="outline">
+            <Button onClick={() => navigate('/profile')} variant="outline">
               Profile
             </Button>
-            {(profile.role === 'admin' || profile.role === 'company_manager') && (
-              <Button onClick={() => window.location.href = '/analytics'} variant="outline">
+            {(profile.role === 'admin' || profile.role === 'company_manager' || profile.role === 'brand_manager') && (
+              <Button onClick={() => navigate('/analytics')} variant="outline">
                 Analytics
               </Button>
             )}
             {profile.role === 'admin' && (
-              <Button onClick={() => window.location.href = '/admin'} variant="outline">
+              <Button onClick={() => navigate('/admin')} variant="outline">
                 Admin Panel
               </Button>
             )}
