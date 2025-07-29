@@ -7,10 +7,11 @@ interface Profile {
   user_id: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'company_manager' | 'store_manager' | 'brand_manager';
+  role: 'admin' | 'company_manager' | 'location_manager' | 'brand_manager' | 'store_manager';
   company_id: string | null;
-  store_id: string | null;
+  location_id: string | null;
   brand_id: string | null;
+  store_id: string | null;
 }
 
 interface AuthContextType {

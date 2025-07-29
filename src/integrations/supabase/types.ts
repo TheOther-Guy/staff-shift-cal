@@ -19,6 +19,7 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          location_id: string | null
           name: string
           updated_at: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          location_id?: string | null
           name: string
           updated_at?: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          location_id?: string | null
           name?: string
           updated_at?: string
         }
@@ -69,22 +72,34 @@ export type Database = {
       }
       employees: {
         Row: {
+          brand_id: string | null
+          company_id: string | null
           created_at: string
+          hiring_date: string | null
           id: string
+          location_id: string | null
           name: string
           store_id: string
           updated_at: string
         }
         Insert: {
+          brand_id?: string | null
+          company_id?: string | null
           created_at?: string
+          hiring_date?: string | null
           id?: string
+          location_id?: string | null
           name: string
           store_id: string
           updated_at?: string
         }
         Update: {
+          brand_id?: string | null
+          company_id?: string | null
           created_at?: string
+          hiring_date?: string | null
           id?: string
+          location_id?: string | null
           name?: string
           store_id?: string
           updated_at?: string
@@ -99,6 +114,33 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brand_id: string | null
@@ -107,6 +149,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          location_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           store_id: string | null
           updated_at: string
@@ -119,6 +162,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          location_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           store_id?: string | null
           updated_at?: string
@@ -131,6 +175,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          location_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           store_id?: string | null
           updated_at?: string
@@ -253,6 +298,10 @@ export type Database = {
         Returns: string
       }
       get_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_user_location_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
