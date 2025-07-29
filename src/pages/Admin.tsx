@@ -221,7 +221,7 @@ export default function Admin() {
         company_id: newStoreCompany
       };
 
-      if (newStoreBrand) {
+      if (newStoreBrand && newStoreBrand !== 'none') {
         storeData.brand_id = newStoreBrand;
       }
 
@@ -723,7 +723,7 @@ export default function Admin() {
                           <SelectValue placeholder="Select brand (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No Brand</SelectItem>
+                          <SelectItem value="none">No Brand</SelectItem>
                           {brands
                             .filter(brand => !newStoreCompany || brand.company_id === newStoreCompany)
                             .map((brand) => (
