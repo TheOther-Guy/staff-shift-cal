@@ -23,7 +23,7 @@ interface Location {
   name: string;
   type: string;
   company_id: string;
-  companies?: { name: string };
+  companies?: { name: string } | null;
 }
 
 interface Brand {
@@ -31,8 +31,8 @@ interface Brand {
   name: string;
   company_id: string;
   location_id: string | null;
-  companies?: { name: string };
-  locations?: { name: string };
+  companies?: { name: string } | null;
+  locations?: { name: string } | null;
 }
 
 interface Store {
@@ -40,8 +40,8 @@ interface Store {
   name: string;
   company_id: string;
   brand_id: string | null;
-  companies?: { name: string };
-  brands?: { name: string };
+  companies?: { name: string } | null;
+  brands?: { name: string } | null;
 }
 
 interface Employee {
@@ -52,10 +52,10 @@ interface Employee {
   brand_id: string | null;
   location_id: string | null;
   hiring_date: string;
-  stores?: { name: string };
-  companies?: { name: string };
-  brands?: { name: string };
-  locations?: { name: string };
+  stores?: { name: string } | null;
+  companies?: { name: string } | null;
+  brands?: { name: string } | null;
+  locations?: { name: string } | null;
 }
 
 interface Profile {
@@ -68,10 +68,10 @@ interface Profile {
   location_id: string | null;
   brand_id: string | null;
   store_id: string | null;
-  companies?: { name: string };
-  locations?: { name: string };
-  brands?: { name: string };
-  stores?: { name: string };
+  companies?: { name: string } | null;
+  locations?: { name: string } | null;
+  brands?: { name: string } | null;
+  stores?: { name: string } | null;
 }
 
 export default function Admin() {
@@ -151,7 +151,7 @@ export default function Admin() {
         .select('*, companies(name)')
         .order('name');
       if (locationsError) throw locationsError;
-      setLocations(locationsData || []);
+      setLocations(locationsData as any || []);
 
       // Fetch brands
       const { data: brandsData, error: brandsError } = await supabase
@@ -159,7 +159,7 @@ export default function Admin() {
         .select('*, companies(name), locations(name)')
         .order('name');
       if (brandsError) throw brandsError;
-      setBrands(brandsData || []);
+      setBrands(brandsData as any || []);
 
       // Fetch stores
       const { data: storesData, error: storesError } = await supabase
@@ -167,7 +167,7 @@ export default function Admin() {
         .select('*, companies(name), brands(name)')
         .order('name');
       if (storesError) throw storesError;
-      setStores(storesData || []);
+      setStores(storesData as any || []);
 
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
@@ -175,7 +175,7 @@ export default function Admin() {
         .select('*, stores(name), companies(name), brands(name), locations(name)')
         .order('name');
       if (employeesError) throw employeesError;
-      setEmployees(employeesData || []);
+      setEmployees(employeesData as any || []);
 
       // Fetch profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -183,7 +183,7 @@ export default function Admin() {
         .select('*, companies(name), locations(name), brands(name), stores(name)')
         .order('full_name');
       if (profilesError) throw profilesError;
-      setProfiles(profilesData || []);
+      setProfiles(profilesData as any || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({

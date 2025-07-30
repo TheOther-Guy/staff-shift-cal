@@ -33,7 +33,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    role: 'store_manager' as 'admin' | 'company_manager' | 'store_manager' | 'brand_manager',
+    role: 'store_manager' as 'admin' | 'company_manager' | 'location_manager' | 'brand_manager' | 'store_manager',
     company_id: '',
     store_id: ''
   });

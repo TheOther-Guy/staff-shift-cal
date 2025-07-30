@@ -127,7 +127,7 @@ export default function Analytics() {
       // Process companies
       const processedCompanies = (companiesData || []).map(company => {
         const companyStores = (storesData || []).filter(store => store.company_id === company.id);
-        const companyEmployees = (employeesData || []).filter(emp => emp.stores?.company_id === company.id);
+        const companyEmployees = (employeesData || []).filter(emp => (emp as any).stores?.company_id === company.id);
         
         return {
           id: company.id,
@@ -142,13 +142,13 @@ export default function Analytics() {
       // Process brands
       const processedBrands = (brandsData || []).map(brand => {
         const brandStores = (storesData || []).filter(store => store.brand_id === brand.id);
-        const brandEmployees = (employeesData || []).filter(emp => emp.stores?.brand_id === brand.id);
+        const brandEmployees = (employeesData || []).filter(emp => (emp as any).stores?.brand_id === brand.id);
         
         return {
           id: brand.id,
           name: brand.name,
           company_id: brand.company_id,
-          company_name: brand.companies?.name || '',
+          company_name: (brand as any).companies?.name || '',
           storeCount: brandStores.length,
           employeeCount: brandEmployees.length,
           timeOffCount: brandEmployees.reduce((acc, emp) => acc + (emp.time_off_entries?.length || 0), 0)
@@ -160,11 +160,11 @@ export default function Analytics() {
         id: store.id,
         name: store.name,
         brand_id: store.brand_id,
-        brand_name: store.brands?.name || 'No Brand',
+        brand_name: (store as any).brands?.name || 'No Brand',
         company_id: store.company_id,
-        company_name: store.companies?.name || '',
-        employeeCount: store.employees?.length || 0,
-        timeOffCount: store.employees?.reduce((acc, emp) => acc + (emp.time_off_entries?.length || 0), 0) || 0
+        company_name: (store as any).companies?.name || '',
+        employeeCount: (store as any).employees?.length || 0,
+        timeOffCount: (store as any).employees?.reduce((acc: any, emp: any) => acc + (emp.time_off_entries?.length || 0), 0) || 0
       }));
 
       // Process employees
@@ -172,9 +172,9 @@ export default function Analytics() {
         id: employee.id,
         name: employee.name,
         store_id: employee.store_id,
-        store_name: employee.stores?.name || '',
-        brand_name: employee.stores?.brands?.name || 'No Brand',
-        company_name: employee.stores?.companies?.name || '',
+        store_name: (employee as any).stores?.name || '',
+        brand_name: (employee as any).stores?.brands?.name || 'No Brand',
+        company_name: (employee as any).stores?.companies?.name || '',
         timeOffCount: employee.time_off_entries?.length || 0,
         sickLeaveCount: employee.time_off_entries?.filter(entry => entry.type === 'sick-leave').length || 0,
         dayOffCount: employee.time_off_entries?.filter(entry => entry.type === 'day-off').length || 0
