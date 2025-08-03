@@ -30,8 +30,14 @@ interface Brand {
   id: string;
   name: string;
   company_id: string;
-  location_id: string | null;
   companies?: { name: string } | null;
+}
+
+interface BrandLocation {
+  id: string;
+  brand_id: string;
+  location_id: string;
+  brands?: { name: string } | null;
   locations?: { name: string } | null;
 }
 
@@ -40,8 +46,10 @@ interface Store {
   name: string;
   company_id: string;
   brand_id: string | null;
+  location_id: string | null;
   companies?: { name: string } | null;
   brands?: { name: string } | null;
+  locations?: { name: string } | null;
 }
 
 interface Employee {
@@ -49,13 +57,9 @@ interface Employee {
   name: string;
   store_id: string;
   company_id: string | null;
-  brand_id: string | null;
-  location_id: string | null;
   hiring_date: string;
   stores?: { name: string } | null;
   companies?: { name: string } | null;
-  brands?: { name: string } | null;
-  locations?: { name: string } | null;
 }
 
 interface Profile {
@@ -82,6 +86,7 @@ export default function Admin() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandLocations, setBrandLocations] = useState<BrandLocation[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -100,10 +105,11 @@ export default function Admin() {
   const [newLocationType, setNewLocationType] = useState('mall');
   const [newLocationCompany, setNewLocationCompany] = useState('');
   const [newBrandName, setNewBrandName] = useState('');
-  const [newBrandLocation, setNewBrandLocation] = useState('');
+  const [newBrandCompany, setNewBrandCompany] = useState('');
   const [newStoreName, setNewStoreName] = useState('');
   const [newStoreCompany, setNewStoreCompany] = useState('');
   const [newStoreBrand, setNewStoreBrand] = useState('');
+  const [newStoreLocation, setNewStoreLocation] = useState('');
   
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [newEmployeeStore, setNewEmployeeStore] = useState('');
@@ -156,15 +162,23 @@ export default function Admin() {
       // Fetch brands
       const { data: brandsData, error: brandsError } = await supabase
         .from('brands')
-        .select('*, companies(name), locations(name)')
+        .select('*, companies(name)')
         .order('name');
       if (brandsError) throw brandsError;
       setBrands(brandsData as any || []);
 
+      // Fetch brand locations
+      const { data: brandLocationsData, error: brandLocationsError } = await supabase
+        .from('brand_locations')
+        .select('*, brands(name), locations(name)')
+        .order('created_at');
+      if (brandLocationsError) throw brandLocationsError;
+      setBrandLocations(brandLocationsData as any || []);
+
       // Fetch stores
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
-        .select('*, companies(name), brands(name)')
+        .select('*, companies(name), brands(name), locations(name)')
         .order('name');
       if (storesError) throw storesError;
       setStores(storesData as any || []);
@@ -172,7 +186,7 @@ export default function Admin() {
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('*, stores(name), companies(name), brands(name), locations(name)')
+        .select('*, stores(name), companies(name)')
         .order('name');
       if (employeesError) throw employeesError;
       setEmployees(employeesData as any || []);
@@ -235,19 +249,17 @@ export default function Admin() {
   };
 
   const handleCreateBrand = async () => {
-    if (!newBrandName.trim() || !newBrandLocation) return;
+    if (!newBrandName.trim() || !newBrandCompany) return;
     try {
-      const location = locations.find(l => l.id === newBrandLocation);
       const { error } = await supabase
         .from('brands')
         .insert({ 
           name: newBrandName.trim(),
-          location_id: newBrandLocation,
-          company_id: location?.company_id
+          company_id: newBrandCompany
         });
       if (error) throw error;
       setNewBrandName('');
-      setNewBrandLocation('');
+      setNewBrandCompany('');
       setShowBrandDialog(false);
       fetchData();
       toast({ title: "Success", description: "Brand created successfully" });
@@ -258,11 +270,12 @@ export default function Admin() {
   };
 
   const handleCreateStore = async () => {
-    if (!newStoreName.trim() || !newStoreCompany) return;
+    if (!newStoreName.trim() || !newStoreCompany || !newStoreLocation) return;
     try {
       const storeData: any = {
         name: newStoreName.trim(),
-        company_id: newStoreCompany
+        company_id: newStoreCompany,
+        location_id: newStoreLocation
       };
       if (newStoreBrand && newStoreBrand !== 'none') {
         storeData.brand_id = newStoreBrand;
@@ -274,6 +287,7 @@ export default function Admin() {
       setNewStoreName('');
       setNewStoreCompany('');
       setNewStoreBrand('');
+      setNewStoreLocation('');
       setShowStoreDialog(false);
       fetchData();
       toast({ title: "Success", description: "Store created successfully" });
@@ -287,15 +301,12 @@ export default function Admin() {
     if (!newEmployeeName.trim() || !newEmployeeStore) return;
     try {
       const store = stores.find(s => s.id === newEmployeeStore);
-      const brand = brands.find(b => b.id === store?.brand_id);
       const { error } = await supabase
         .from('employees')
         .insert({
           name: newEmployeeName.trim(),
           store_id: newEmployeeStore,
           company_id: store?.company_id,
-          brand_id: store?.brand_id,
-          location_id: brand?.location_id,
           hiring_date: newEmployeeHiringDate || new Date().toISOString().split('T')[0]
         });
       if (error) throw error;
@@ -338,13 +349,11 @@ export default function Admin() {
       } else if (newUserRole === 'brand_manager' && newUserBrand) {
         const brand = brands.find(b => b.id === newUserBrand);
         profileData.company_id = brand?.company_id;
-        profileData.location_id = brand?.location_id;
         profileData.brand_id = newUserBrand;
       } else if (newUserRole === 'store_manager' && newUserStore) {
         const store = stores.find(s => s.id === newUserStore);
-        const brand = brands.find(b => b.id === store?.brand_id);
         profileData.company_id = store?.company_id;
-        profileData.location_id = brand?.location_id;
+        profileData.location_id = store?.location_id;
         profileData.brand_id = store?.brand_id;
         profileData.store_id = newUserStore;
       }
@@ -686,7 +695,7 @@ export default function Admin() {
                       </Badge>
                     </TableCell>
                     <TableCell>{location.companies?.name}</TableCell>
-                    <TableCell>{brands.filter(b => b.location_id === location.id).length}</TableCell>
+                    <TableCell>{brandLocations.filter(bl => bl.location_id === location.id).length}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" onClick={() => handleDeleteLocation(location.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -726,21 +735,21 @@ export default function Admin() {
                         placeholder="Enter brand name"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="brand-location">Location</Label>
-                      <Select value={newBrandLocation} onValueChange={setNewBrandLocation}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locations.map((location) => (
-                            <SelectItem key={location.id} value={location.id}>
-                              {location.name} ({location.companies?.name})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                     <div>
+                       <Label htmlFor="brand-company">Company</Label>
+                       <Select value={newBrandCompany} onValueChange={setNewBrandCompany}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select company" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {companies.map((company) => (
+                             <SelectItem key={company.id} value={company.id}>
+                               {company.name}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setShowBrandDialog(false)}>Cancel</Button>
                       <Button onClick={handleCreateBrand}>Create</Button>
@@ -765,7 +774,12 @@ export default function Admin() {
                 {brands.map((brand) => (
                   <TableRow key={brand.id}>
                     <TableCell className="font-medium">{brand.name}</TableCell>
-                    <TableCell>{brand.locations?.name || 'No Location'}</TableCell>
+                     <TableCell>
+                       {brandLocations
+                         .filter(bl => bl.brand_id === brand.id)
+                         .map(bl => bl.locations?.name)
+                         .join(', ') || 'No Locations'}
+                     </TableCell>
                     <TableCell>{brand.companies?.name}</TableCell>
                     <TableCell>{stores.filter(s => s.brand_id === brand.id).length}</TableCell>
                     <TableCell>
@@ -824,21 +838,38 @@ export default function Admin() {
                     </div>
                     <div>
                       <Label htmlFor="store-brand">Brand (Optional)</Label>
-                      <Select value={newStoreBrand} onValueChange={setNewStoreBrand}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select brand (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Brand</SelectItem>
-                          {brands
-                            .filter(brand => !newStoreCompany || brand.company_id === newStoreCompany)
-                            .map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
+                       <Select value={newStoreBrand} onValueChange={setNewStoreBrand}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select brand (optional)" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="none">No Brand</SelectItem>
+                           {brands
+                             .filter(brand => !newStoreCompany || brand.company_id === newStoreCompany)
+                             .map((brand) => (
+                               <SelectItem key={brand.id} value={brand.id}>
+                                 {brand.name}
+                               </SelectItem>
+                             ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label htmlFor="store-location">Location</Label>
+                       <Select value={newStoreLocation} onValueChange={setNewStoreLocation}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select location" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {locations
+                             .filter(location => !newStoreCompany || location.company_id === newStoreCompany)
+                             .map((location) => (
+                               <SelectItem key={location.id} value={location.id}>
+                                 {location.name}
+                               </SelectItem>
+                             ))}
+                         </SelectContent>
+                       </Select>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setShowStoreDialog(false)}>Cancel</Button>
@@ -957,8 +988,18 @@ export default function Admin() {
                   <TableRow key={employee.id}>
                     <TableCell className="font-medium">{employee.name}</TableCell>
                     <TableCell>{employee.stores?.name}</TableCell>
-                    <TableCell>{employee.brands?.name || 'No Brand'}</TableCell>
-                    <TableCell>{employee.locations?.name || 'No Location'}</TableCell>
+                     <TableCell>
+                       {(() => {
+                         const store = stores.find(s => s.id === employee.store_id);
+                         return store?.brands?.name || 'No Brand';
+                       })()}
+                     </TableCell>
+                     <TableCell>
+                       {(() => {
+                         const store = stores.find(s => s.id === employee.store_id);
+                         return store?.locations?.name || 'No Location';
+                       })()}
+                     </TableCell>
                     <TableCell>{employee.companies?.name}</TableCell>
                     <TableCell>{new Date(employee.hiring_date).toLocaleDateString()}</TableCell>
                     <TableCell>
@@ -1068,7 +1109,7 @@ export default function Admin() {
                           <SelectContent>
                             {brands.map((brand) => (
                               <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name} ({brand.locations?.name})
+                                {brand.name} ({brand.companies?.name})
                               </SelectItem>
                             ))}
                           </SelectContent>
