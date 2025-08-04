@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Calendar, Users, BarChart3, Shield } from 'lucide-react';
 
 export default function Index() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -90,16 +90,37 @@ export default function Index() {
 
         <div className="text-center space-y-4">
           <div className="space-y-4">
-            <Button 
-              size="lg" 
-              className="w-full max-w-sm mx-auto"
-              onClick={() => {
-                console.log('Sign In button clicked, navigating to /auth');
-                navigate('/auth');
-              }}
-            >
-              Sign In / Sign Up
-            </Button>
+            {user ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Already signed in as: {user.email}</p>
+                <div className="flex gap-2 justify-center">
+                  <Button 
+                    size="lg" 
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    Go to Dashboard
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    onClick={() => signOut()}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button 
+                size="lg" 
+                className="w-full max-w-sm mx-auto"
+                onClick={() => {
+                  console.log('Sign In button clicked, navigating to /auth');
+                  navigate('/auth');
+                }}
+              >
+                Sign In / Sign Up
+              </Button>
+            )}
             <div className="text-sm text-gray-500">
               <p>Demo roles available: Admin, Company Manager, Store Manager</p>
             </div>
