@@ -83,6 +83,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
           request_data: {
             employeeId: entry.employeeId,
             employeeName: employee.name,
+            storeName: stores.find(s => s.id === employee.store_id)?.name || 'Unknown Store',
             startDate: entry.startDate.toISOString().split('T')[0],
             endDate: entry.endDate.toISOString().split('T')[0],
             type: entry.type,
@@ -109,6 +110,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
           approverName: approver.full_name,
           details: {
             employeeName: employee.name,
+            storeName: stores.find(s => s.id === employee.store_id)?.name || 'Unknown Store',
             type: entry.type,
             startDate: entry.startDate.toISOString().split('T')[0],
             endDate: entry.endDate.toISOString().split('T')[0],

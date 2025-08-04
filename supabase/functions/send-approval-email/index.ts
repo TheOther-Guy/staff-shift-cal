@@ -46,7 +46,7 @@ const getEmailTemplate = (type: string, data: any) => {
     case 'sick_leave':
     case 'annual_leave':
       return {
-        subject: `${type.replace('_', ' ').toUpperCase()} Request - ${data.requesterName}`,
+        subject: `${type.replace('_', ' ').toUpperCase()} Request - ${data.details.employeeName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #333;">${type.replace('_', ' ').toUpperCase()} Request</h2>
@@ -54,13 +54,15 @@ const getEmailTemplate = (type: string, data: any) => {
             <p>A new ${type.replace('_', ' ')} request requires your approval:</p>
             <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3>Request Details:</h3>
-              <p><strong>Employee:</strong> ${data.requesterName}</p>
+              <p><strong>Employee:</strong> ${data.details.employeeName}</p>
+              <p><strong>Requested by:</strong> ${data.requesterName}</p>
+              <p><strong>Store:</strong> ${data.details.storeName}</p>
               <p><strong>Type:</strong> ${data.details.type}</p>
               <p><strong>Start Date:</strong> ${data.details.startDate}</p>
               <p><strong>End Date:</strong> ${data.details.endDate}</p>
               ${data.details.notes ? `<p><strong>Notes:</strong> ${data.details.notes}</p>` : ''}
             </div>
-            <p>Please review this request in the management panel to approve or reject it.</p>
+            <p>Please review this request in the admin panel to approve or reject it.</p>
             <p style="color: #666; font-size: 14px;">This is an automated message from your HR Management System.</p>
           </div>
         `
