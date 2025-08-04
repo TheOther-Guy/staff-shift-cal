@@ -89,6 +89,7 @@ export default function Admin() {
   const [newEmployeeHiringDate, setNewEmployeeHiringDate] = useState('');
   
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'company_manager' | 'brand_manager' | 'store_manager'>('store_manager');
   const [newUserCompany, setNewUserCompany] = useState('');
@@ -142,7 +143,7 @@ export default function Admin() {
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('*, stores(name), companies(name)')
+        .select('*, stores!fk_employees_store(name), companies!fk_employees_company(name)')
         .order('name');
       if (employeesError) throw employeesError;
       setEmployees(employeesData as any || []);
@@ -150,7 +151,7 @@ export default function Admin() {
       // Fetch profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*, companies(name), brands(name), stores(name)')
+        .select('*, companies!profiles_company_id_fkey(name), brands!profiles_brand_id_fkey(name), stores!profiles_store_id_fkey(name)')
         .order('full_name');
       if (profilesError) throw profilesError;
       setProfiles(profilesData as any || []);
@@ -254,11 +255,11 @@ export default function Admin() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserEmail.trim() || !newUserName.trim() || !newUserRole) return;
+    if (!newUserEmail.trim() || !newUserPassword.trim() || !newUserName.trim() || !newUserRole) return;
     try {
       const { data, error } = await supabase.auth.admin.createUser({
         email: newUserEmail.trim(),
-        password: 'TempPassword123!',
+        password: newUserPassword.trim(),
         email_confirm: true,
         user_metadata: { full_name: newUserName.trim() }
       });
@@ -290,6 +291,7 @@ export default function Admin() {
       if (profileError) throw profileError;
 
       setNewUserEmail('');
+      setNewUserPassword('');
       setNewUserName('');
       setNewUserRole('store_manager');
       setNewUserCompany('');
@@ -813,16 +815,26 @@ export default function Admin() {
                         placeholder="Enter full name"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="user-email">Email</Label>
-                      <Input
-                        id="user-email"
-                        type="email"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                        placeholder="Enter email address"
-                      />
-                    </div>
+                     <div>
+                       <Label htmlFor="user-email">Email</Label>
+                       <Input
+                         id="user-email"
+                         type="email"
+                         value={newUserEmail}
+                         onChange={(e) => setNewUserEmail(e.target.value)}
+                         placeholder="Enter email address"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="user-password">Password</Label>
+                       <Input
+                         id="user-password"
+                         type="password"
+                         value={newUserPassword}
+                         onChange={(e) => setNewUserPassword(e.target.value)}
+                         placeholder="Enter password"
+                       />
+                     </div>
                     <div>
                       <Label htmlFor="user-role">Role</Label>
                       <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>

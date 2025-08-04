@@ -70,7 +70,7 @@ export default function Dashboard() {
       // Fetch employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('employees')
-        .select('*');
+        .select('*, stores!fk_employees_store(name)');
 
       if (employeesError) throw employeesError;
       setEmployees(employeesData || []);
@@ -83,7 +83,7 @@ export default function Dashboard() {
           employees!inner(
             id,
             name,
-            stores!inner(
+            stores!fk_employees_store(
               id,
               name,
               company_id
