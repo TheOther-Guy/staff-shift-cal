@@ -93,7 +93,10 @@ export default function Index() {
             <Button 
               size="lg" 
               className="w-full max-w-sm mx-auto"
-              onClick={() => navigate('/auth')}
+              onClick={() => {
+                console.log('Sign In button clicked, navigating to /auth');
+                navigate('/auth');
+              }}
             >
               Sign In / Sign Up
             </Button>
