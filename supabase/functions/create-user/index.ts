@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { email, password, full_name, role, company_id, brand_id, store_id } = await req.json()
+    const { email, password, full_name, role, company_id, brand_id, brand_ids = [], store_id } = await req.json()
 
     // Create the user in auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -49,6 +49,20 @@ Deno.serve(async (req) => {
       })
 
     if (profileError) throw profileError
+
+    // Handle multiple brand assignments for brand managers
+    if (role === 'brand_manager' && brand_ids.length > 0) {
+      const userBrandInserts = brand_ids.map((brandId: string) => ({
+        user_id: authData.user.id,
+        brand_id: brandId
+      }));
+
+      const { error: userBrandsError } = await supabaseAdmin
+        .from('user_brands')
+        .insert(userBrandInserts);
+
+      if (userBrandsError) throw userBrandsError;
+    }
 
     return new Response(
       JSON.stringify({ success: true, user: authData.user }),

@@ -56,6 +56,7 @@ interface Profile {
   companies?: { name: string } | null;
   brands?: { name: string } | null;
   stores?: { name: string } | null;
+  assignedBrands?: string[];
 }
 
 export default function Admin() {
@@ -95,6 +96,7 @@ export default function Admin() {
   const [newUserCompany, setNewUserCompany] = useState('');
   const [newUserBrand, setNewUserBrand] = useState('');
   const [newUserStore, setNewUserStore] = useState('');
+  const [newUserBrands, setNewUserBrands] = useState<string[]>([]);
 
   useEffect(() => {
     if (profile?.role === 'admin') {
@@ -285,6 +287,7 @@ export default function Admin() {
           role: newUserRole,
           company_id: profileData.company_id || null,
           brand_id: profileData.brand_id || null,
+          brand_ids: newUserRole === 'brand_manager' ? newUserBrands : [],
           store_id: profileData.store_id || null
         }
       });
@@ -298,6 +301,7 @@ export default function Admin() {
       setNewUserRole('store_manager');
       setNewUserCompany('');
       setNewUserBrand('');
+      setNewUserBrands([]);
       setNewUserStore('');
       setShowUserDialog(false);
       fetchData();
@@ -867,23 +871,33 @@ export default function Admin() {
                         </Select>
                       </div>
                     )}
-                    {newUserRole === 'brand_manager' && (
-                      <div>
-                        <Label htmlFor="user-brand">Brand</Label>
-                        <Select value={newUserBrand} onValueChange={setNewUserBrand}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name} ({brand.companies?.name})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                     {newUserRole === 'brand_manager' && (
+                       <div className="space-y-2">
+                         <Label>Brands (select multiple)</Label>
+                         <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
+                           {brands.map(brand => (
+                             <div key={brand.id} className="flex items-center space-x-2">
+                               <input
+                                 type="checkbox"
+                                 id={`brand-${brand.id}`}
+                                 checked={newUserBrands.includes(brand.id)}
+                                 onChange={(e) => {
+                                   if (e.target.checked) {
+                                     setNewUserBrands([...newUserBrands, brand.id]);
+                                   } else {
+                                     setNewUserBrands(newUserBrands.filter(id => id !== brand.id));
+                                   }
+                                 }}
+                                 className="rounded border-gray-300"
+                               />
+                               <label htmlFor={`brand-${brand.id}`} className="text-sm">
+                                 {brand.name} ({brand.companies?.name})
+                               </label>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
                     {newUserRole === 'store_manager' && (
                       <div>
                         <Label htmlFor="user-store">Store</Label>
@@ -933,7 +947,11 @@ export default function Admin() {
                     </TableCell>
                     <TableCell>
                       {profile.role === 'company_manager' && profile.companies?.name}
-                      {profile.role === 'brand_manager' && profile.brands?.name}
+                      {profile.role === 'brand_manager' && (
+                        profile.assignedBrands?.length > 0 
+                          ? profile.assignedBrands.join(', ')
+                          : profile.brands?.name || 'No brands assigned'
+                      )}
                       {profile.role === 'store_manager' && profile.stores?.name}
                     </TableCell>
                     <TableCell>
