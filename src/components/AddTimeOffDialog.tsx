@@ -39,7 +39,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
   const [type, setType] = useState<TimeOffType>('day-off');
   const [notes, setNotes] = useState('');
 
-  const filteredEmployees = selectedStore 
+  const filteredEmployees = selectedStore && selectedStore !== 'all'
     ? employees.filter(emp => emp.store_id === selectedStore)
     : employees;
 
