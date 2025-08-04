@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_requests: {
+        Row: {
+          approved_at: string | null
+          approver_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          rejected_at: string | null
+          request_data: Json
+          requester_id: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approver_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          request_data: Json
+          requester_id?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approver_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          request_data?: Json
+          requester_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           company_id: string
@@ -73,6 +115,7 @@ export type Database = {
           created_at: string
           hiring_date: string | null
           id: string
+          INT_ID: number | null
           name: string
           store_id: string
           updated_at: string
@@ -82,6 +125,7 @@ export type Database = {
           created_at?: string
           hiring_date?: string | null
           id?: string
+          INT_ID?: number | null
           name: string
           store_id: string
           updated_at?: string
@@ -91,6 +135,7 @@ export type Database = {
           created_at?: string
           hiring_date?: string | null
           id?: string
+          INT_ID?: number | null
           name?: string
           store_id?: string
           updated_at?: string
@@ -223,6 +268,7 @@ export type Database = {
           id: string
           notes: string | null
           start_date: string
+          status: string | null
           type: string
           updated_at: string
         }
@@ -233,6 +279,7 @@ export type Database = {
           id?: string
           notes?: string | null
           start_date: string
+          status?: string | null
           type: string
           updated_at?: string
         }
@@ -243,6 +290,7 @@ export type Database = {
           id?: string
           notes?: string | null
           start_date?: string
+          status?: string | null
           type?: string
           updated_at?: string
         }
@@ -290,6 +338,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_time_off_approver: {
+        Args: { employee_id: string }
+        Returns: string
+      }
       get_user_brand_id: {
         Args: Record<PropertyKey, never>
         Returns: string

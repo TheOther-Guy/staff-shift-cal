@@ -12,6 +12,9 @@ import { CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TimeOffType, TimeOffEntry } from './StaffCalendar';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface Store {
   id: string;
@@ -38,6 +41,8 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
   const [employeeId, setEmployeeId] = useState('');
   const [type, setType] = useState<TimeOffType>('day-off');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const filteredEmployees = selectedStore && selectedStore !== 'all'
     ? employees.filter(emp => emp.store_id === selectedStore)
@@ -47,17 +52,104 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
   console.log('AddTimeOffDialog - selectedStore:', selectedStore);
   console.log('AddTimeOffDialog - filteredEmployees:', filteredEmployees);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!dateRange?.from || !employeeId) return;
+  const createApprovalRequest = async (entry: Omit<TimeOffEntry, 'id'>) => {
+    try {
+      // Get employee details
+      const employee = employees.find(emp => emp.id === entry.employeeId);
+      if (!employee || !user) return;
 
-    onAddEntry({
+      // Get brand manager for approval (simplified - get first admin)
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .eq('role', 'admin')
+        .limit(1);
+
+      if (!admins || admins.length === 0) {
+        toast.error('No admin found for approval');
+        return;
+      }
+
+      const approver = admins[0];
+
+      // Create approval request
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('approval_requests')
+        .insert({
+          type: entry.type === 'sick-leave' ? 'sick_leave' : 
+                entry.type === 'annual' ? 'annual_leave' : 'time_off',
+          requester_id: user.id,
+          approver_id: approver.user_id,
+          request_data: {
+            employeeId: entry.employeeId,
+            employeeName: employee.name,
+            startDate: entry.startDate.toISOString().split('T')[0],
+            endDate: entry.endDate.toISOString().split('T')[0],
+            type: entry.type,
+            notes: entry.notes
+          }
+        })
+        .select()
+        .single();
+
+      if (approvalError) {
+        console.error('Error creating approval request:', approvalError);
+        toast.error('Failed to create approval request');
+        return;
+      }
+
+      // Send approval email
+      const { error: emailError } = await supabase.functions.invoke('send-approval-email', {
+        body: {
+          type: entry.type === 'sick-leave' ? 'sick_leave' : 
+                entry.type === 'annual' ? 'annual_leave' : 'time_off',
+          requesterName: user.user_metadata?.full_name || user.email || 'Unknown',
+          requesterEmail: user.email || '',
+          approverEmail: approver.email,
+          approverName: approver.full_name,
+          details: {
+            employeeName: employee.name,
+            type: entry.type,
+            startDate: entry.startDate.toISOString().split('T')[0],
+            endDate: entry.endDate.toISOString().split('T')[0],
+            notes: entry.notes
+          },
+          approvalId: approvalData.id
+        }
+      });
+
+      if (emailError) {
+        console.error('Error sending approval email:', emailError);
+        toast.error('Approval request created but email notification failed');
+      } else {
+        toast.success('Time off request submitted for approval');
+      }
+
+    } catch (error) {
+      console.error('Error in approval process:', error);
+      toast.error('Failed to submit approval request');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dateRange?.from || !employeeId || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    const entry = {
       employeeId,
       startDate: dateRange.from,
       endDate: dateRange.to || dateRange.from,
       type,
       notes: notes.trim() || undefined,
-    });
+    };
+
+    // Create approval request and send email
+    await createApprovalRequest(entry);
+
+    // Also add to local state for immediate feedback
+    onAddEntry(entry);
 
     // Reset form
     setDateRange(undefined);
@@ -65,6 +157,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
     setType('day-off');
     setNotes('');
     setOpen(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -175,8 +268,8 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!dateRange?.from || !employeeId}>
-              Add Entry
+            <Button type="submit" disabled={!dateRange?.from || !employeeId || isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Add Entry'}
             </Button>
           </div>
         </form>
