@@ -392,10 +392,23 @@ export default function Admin() {
   const handleDeleteProfile = async (profileId: string, userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-      const { error: profileError } = await supabase.from('profiles').delete().eq('id', profileId);
-      if (profileError) throw profileError;
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const response = await fetch('/functions/v1/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ profileId, userId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
+
       fetchData();
       toast({ title: "Success", description: "User deleted successfully" });
     } catch (error) {
