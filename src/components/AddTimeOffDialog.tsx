@@ -43,6 +43,10 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
     ? employees.filter(emp => emp.store_id === selectedStore)
     : employees;
 
+  console.log('AddTimeOffDialog - employees:', employees);
+  console.log('AddTimeOffDialog - selectedStore:', selectedStore);
+  console.log('AddTimeOffDialog - filteredEmployees:', filteredEmployees);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!dateRange?.from || !employeeId) return;
@@ -82,12 +86,18 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
               <SelectTrigger>
                 <SelectValue placeholder="Select employee" />
               </SelectTrigger>
-              <SelectContent>
-                {filteredEmployees.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    {employee.name}
+              <SelectContent className="bg-background border shadow-md z-50">
+                {filteredEmployees.length === 0 ? (
+                  <SelectItem value="no-employees" disabled>
+                    No employees available
                   </SelectItem>
-                ))}
+                ) : (
+                  filteredEmployees.map((employee) => (
+                    <SelectItem key={employee.id} value={employee.id}>
+                      {employee.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
