@@ -162,7 +162,7 @@ export default function Admin() {
       // Fetch brands
       const { data: brandsData, error: brandsError } = await supabase
         .from('brands')
-        .select('*, companies(name)')
+        .select('*, companies!fk_brands_company(name)')
         .order('name');
       if (brandsError) throw brandsError;
       setBrands(brandsData as any || []);

@@ -77,13 +77,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "brands_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_brands_company"
             columns: ["company_id"]
             isOneToOne: false
@@ -142,13 +135,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "employees_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_employees_company"
             columns: ["company_id"]
