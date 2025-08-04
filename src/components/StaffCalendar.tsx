@@ -52,7 +52,7 @@ export function StaffCalendar({ entries, selectedEmployee, onDateSelect, classNa
         start: startOfDay(entry.startDate),
         end: endOfDay(entry.endDate)
       });
-      return isInRange && (!selectedEmployee || entry.employeeId === selectedEmployee);
+      return isInRange && (!selectedEmployee || selectedEmployee === 'all' || entry.employeeId === selectedEmployee);
     });
   };
 
