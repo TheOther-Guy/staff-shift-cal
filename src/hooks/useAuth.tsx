@@ -41,13 +41,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           // Fetch user profile
           setTimeout(async () => {
-            const { data: profileData } = await supabase
+            const { data: profileData, error } = await supabase
               .from('profiles')
               .select('*')
               .eq('user_id', session.user.id)
-              .single();
+              .maybeSingle();
             
-            setProfile(profileData);
+            if (!profileData && !error) {
+              // Profile doesn't exist, create one
+              const { data: newProfile } = await supabase
+                .from('profiles')
+                .insert({
+                  user_id: session.user.id,
+                  email: session.user.email || '',
+                  full_name: session.user.user_metadata?.full_name || session.user.email || '',
+                  role: 'store_manager' as const
+                })
+                .select()
+                .single();
+              
+              setProfile(newProfile);
+            } else {
+              setProfile(profileData);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -65,13 +81,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         // Fetch user profile
         setTimeout(async () => {
-          const { data: profileData } = await supabase
+          const { data: profileData, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
           
-          setProfile(profileData);
+          if (!profileData && !error) {
+            // Profile doesn't exist, create one
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: session.user.id,
+                email: session.user.email || '',
+                full_name: session.user.user_metadata?.full_name || session.user.email || '',
+                role: 'store_manager' as const
+              })
+              .select()
+              .single();
+            
+            setProfile(newProfile);
+          } else {
+            setProfile(profileData);
+          }
         }, 0);
       }
       
