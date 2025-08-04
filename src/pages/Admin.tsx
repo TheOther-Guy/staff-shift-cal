@@ -923,6 +923,7 @@ export default function Admin() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>INT ID</TableHead>
                   <TableHead>Store</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Hiring Date</TableHead>
@@ -933,6 +934,7 @@ export default function Admin() {
                 {employees.map((employee) => (
                   <TableRow key={employee.id}>
                     <TableCell className="font-medium">{employee.name}</TableCell>
+                    <TableCell>{employee.INT_ID || 'N/A'}</TableCell>
                     <TableCell>{employee.stores?.name}</TableCell>
                     <TableCell>{employee.companies?.name}</TableCell>
                     <TableCell>{new Date(employee.hiring_date).toLocaleDateString()}</TableCell>
