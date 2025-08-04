@@ -48,6 +48,15 @@ All colors MUST be HSL.
     
     --weekend: 262 83% 58%;
     --weekend-foreground: 0 0% 100%;
+    
+    --annual: 195 100% 39%;
+    --annual-foreground: 0 0% 100%;
+    
+    --travel: 270 95% 40%;
+    --travel-foreground: 0 0% 100%;
+    
+    --mission: 346 77% 49%;
+    --mission-foreground: 0 0% 100%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(214 84% 56%), hsl(214 84% 66%));

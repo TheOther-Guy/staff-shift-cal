@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-export type TimeOffType = 'sick-leave' | 'day-off' | 'weekend' | 'available';
+export type TimeOffType = 'sick-leave' | 'day-off' | 'weekend' | 'available' | 'annual' | 'travel' | 'mission';
 
 export interface TimeOffEntry {
   id: string;
@@ -28,6 +28,9 @@ const typeColors: Record<TimeOffType, string> = {
   'day-off': 'bg-day-off text-day-off-foreground',
   'weekend': 'bg-weekend text-weekend-foreground',
   'available': 'bg-available text-available-foreground',
+  'annual': 'bg-annual text-annual-foreground',
+  'travel': 'bg-travel text-travel-foreground',
+  'mission': 'bg-mission text-mission-foreground',
 };
 
 const typeLabels: Record<TimeOffType, string> = {
@@ -35,6 +38,9 @@ const typeLabels: Record<TimeOffType, string> = {
   'day-off': 'Day Off',
   'weekend': 'Weekend',
   'available': 'Available',
+  'annual': 'Annual',
+  'travel': 'Travel',
+  'mission': 'Mission',
 };
 
 export function StaffCalendar({ entries, selectedEmployee, onDateSelect, className }: StaffCalendarProps) {

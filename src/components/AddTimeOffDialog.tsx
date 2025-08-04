@@ -153,6 +153,9 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
                 <SelectItem value="sick-leave">Sick Leave</SelectItem>
                 <SelectItem value="weekend">Weekend</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="annual">Annual</SelectItem>
+                <SelectItem value="travel">Travel</SelectItem>
+                <SelectItem value="mission">Mission</SelectItem>
               </SelectContent>
             </Select>
           </div>
