@@ -45,6 +45,10 @@ const getEmailTemplate = (type: string, data: any) => {
     case 'time_off':
     case 'sick_leave':
     case 'annual_leave':
+      const token = btoa(`${data.approvalId}-${new Date().toISOString()}`).slice(0, 20);
+      const approveUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-approval?id=${data.approvalId}&action=approve&token=${token}`;
+      const rejectUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/handle-approval?id=${data.approvalId}&action=reject&token=${token}`;
+      
       return {
         subject: `${type.replace('_', ' ').toUpperCase()} Request - ${data.details.employeeName}`,
         html: `
@@ -62,8 +66,18 @@ const getEmailTemplate = (type: string, data: any) => {
               <p><strong>End Date:</strong> ${data.details.endDate}</p>
               ${data.details.notes ? `<p><strong>Notes:</strong> ${data.details.notes}</p>` : ''}
             </div>
-            <p>Please review this request in the admin panel to approve or reject it.</p>
-            <p style="color: #666; font-size: 14px;">This is an automated message from your HR Management System.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${approveUrl}" 
+                 style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 0 10px; display: inline-block;">
+                ✓ APPROVE
+              </a>
+              <a href="${rejectUrl}" 
+                 style="background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 0 10px; display: inline-block;">
+                ✗ REJECT
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px;">Click one of the buttons above to approve or reject this request.</p>
+            <p style="color: #666; font-size: 12px;">This is an automated message from your HR Management System.</p>
           </div>
         `
       };
@@ -105,7 +119,8 @@ const handler = async (req: Request): Promise<Response> => {
       requesterName,
       requesterEmail,
       approverName,
-      details
+      details,
+      approvalId
     });
 
     const emailResponse = await resend.emails.send({
