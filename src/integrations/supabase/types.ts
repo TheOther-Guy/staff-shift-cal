@@ -213,13 +213,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "stores_brand_id_fkey"
-            columns: ["brand_id"]
-            isOneToOne: false
-            referencedRelation: "brands"
-            referencedColumns: ["id"]
-          },
         ]
       }
       time_off_entries: {
