@@ -301,13 +301,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stores_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stores_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false

@@ -178,7 +178,7 @@ export default function Admin() {
       // Fetch stores
       const { data: storesData, error: storesError } = await supabase
         .from('stores')
-        .select('*, companies(name), brands(name), locations(name)')
+        .select('*, companies!fk_stores_company(name), brands(name), locations(name)')
         .order('name');
       if (storesError) throw storesError;
       setStores(storesData as any || []);
