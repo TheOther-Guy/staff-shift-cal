@@ -40,6 +40,7 @@ interface Employee {
   store_id: string;
   company_id: string | null;
   hiring_date: string;
+  INT_ID?: number | null;
   stores?: { name: string } | null;
   companies?: { name: string } | null;
 }
@@ -797,35 +798,37 @@ export default function Admin() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Store</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Hiring Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>INT ID</TableHead>
+                   <TableHead>Name</TableHead>
+                   <TableHead>Store</TableHead>
+                   <TableHead>Brand</TableHead>
+                   <TableHead>Company</TableHead>
+                   <TableHead>Hiring Date</TableHead>
+                   <TableHead>Actions</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell className="font-medium">{employee.name}</TableCell>
-                    <TableCell>{employee.stores?.name}</TableCell>
+                 {employees.map((employee) => (
+                   <TableRow key={employee.id}>
+                     <TableCell className="font-medium">{employee.INT_ID || 'N/A'}</TableCell>
+                     <TableCell className="font-medium">{employee.name}</TableCell>
+                     <TableCell>{employee.stores?.name}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const store = stores.find(s => s.id === employee.store_id);
+                          return store?.brands?.name || 'No Brand';
+                        })()}
+                      </TableCell>
+                     <TableCell>{employee.companies?.name}</TableCell>
+                     <TableCell>{new Date(employee.hiring_date).toLocaleDateString()}</TableCell>
                      <TableCell>
-                       {(() => {
-                         const store = stores.find(s => s.id === employee.store_id);
-                         return store?.brands?.name || 'No Brand';
-                       })()}
+                       <Button variant="outline" size="sm" onClick={() => handleDeleteEmployee(employee.id)}>
+                         <Trash2 className="h-4 w-4" />
+                       </Button>
                      </TableCell>
-                    <TableCell>{employee.companies?.name}</TableCell>
-                    <TableCell>{new Date(employee.hiring_date).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteEmployee(employee.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                   </TableRow>
+                 ))}
               </TableBody>
             </Table>
           </CardContent>
