@@ -257,16 +257,7 @@ export default function Admin() {
   const handleCreateUser = async () => {
     if (!newUserEmail.trim() || !newUserPassword.trim() || !newUserName.trim() || !newUserRole) return;
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: newUserEmail.trim(),
-        password: newUserPassword.trim(),
-        email_confirm: true,
-        user_metadata: { full_name: newUserName.trim() }
-      });
-      if (error) throw error;
-
       const profileData: any = {
-        user_id: data.user.id,
         email: newUserEmail.trim(),
         full_name: newUserName.trim(),
         role: newUserRole
@@ -285,10 +276,21 @@ export default function Admin() {
         profileData.store_id = newUserStore;
       }
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert(profileData);
-      if (profileError) throw profileError;
+      // Call the Edge Function to create user
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: newUserEmail.trim(),
+          password: newUserPassword.trim(),
+          full_name: newUserName.trim(),
+          role: newUserRole,
+          company_id: profileData.company_id || null,
+          brand_id: profileData.brand_id || null,
+          store_id: profileData.store_id || null
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
       setNewUserEmail('');
       setNewUserPassword('');
