@@ -68,6 +68,18 @@ export default {
 					DEFAULT: 'hsl(var(--weekend))',
 					foreground: 'hsl(var(--weekend-foreground))'
 				},
+				annual: {
+					DEFAULT: 'hsl(var(--annual))',
+					foreground: 'hsl(var(--annual-foreground))'
+				},
+				travel: {
+					DEFAULT: 'hsl(var(--travel))',
+					foreground: 'hsl(var(--travel-foreground))'
+				},
+				mission: {
+					DEFAULT: 'hsl(var(--mission))',
+					foreground: 'hsl(var(--mission-foreground))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
