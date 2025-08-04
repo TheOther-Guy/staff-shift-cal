@@ -602,10 +602,521 @@ export default function Admin() {
           </Card>
         </div>
 
-        {/* Rest of the admin interface would go here */}
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Admin interface sections for companies, brands, stores, employees, and users would be displayed here.</p>
-        </div>
+        {/* Companies Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Companies
+                </CardTitle>
+                <CardDescription>Manage companies in the system</CardDescription>
+              </div>
+              <Dialog open={showCompanyDialog} onOpenChange={setShowCompanyDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Company
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Company</DialogTitle>
+                    <DialogDescription>Create a new company in the system</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="company-name">Company Name</Label>
+                      <Input
+                        id="company-name"
+                        value={newCompanyName}
+                        onChange={(e) => setNewCompanyName(e.target.value)}
+                        placeholder="Enter company name"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowCompanyDialog(false)}>Cancel</Button>
+                      <Button onClick={handleCreateCompany}>Create</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {companies.map((company) => (
+                  <TableRow key={company.id}>
+                    <TableCell className="font-medium">{company.name}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteCompany(company.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Brands Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Brands
+                </CardTitle>
+                <CardDescription>Manage brands within companies</CardDescription>
+              </div>
+              <Dialog open={showBrandDialog} onOpenChange={setShowBrandDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Brand
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Brand</DialogTitle>
+                    <DialogDescription>Create a new brand within a company</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="brand-name">Brand Name</Label>
+                      <Input
+                        id="brand-name"
+                        value={newBrandName}
+                        onChange={(e) => setNewBrandName(e.target.value)}
+                        placeholder="Enter brand name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="brand-company">Company</Label>
+                      <Select value={newBrandCompany} onValueChange={setNewBrandCompany}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowBrandDialog(false)}>Cancel</Button>
+                      <Button onClick={handleCreateBrand}>Create</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {brands.map((brand) => (
+                  <TableRow key={brand.id}>
+                    <TableCell className="font-medium">{brand.name}</TableCell>
+                    <TableCell>{brand.companies?.name}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteBrand(brand.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Stores Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="h-5 w-5" />
+                  Stores
+                </CardTitle>
+                <CardDescription>Manage stores within companies and brands</CardDescription>
+              </div>
+              <Dialog open={showStoreDialog} onOpenChange={setShowStoreDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Store
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Store</DialogTitle>
+                    <DialogDescription>Create a new store within a company and brand</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="store-name">Store Name</Label>
+                      <Input
+                        id="store-name"
+                        value={newStoreName}
+                        onChange={(e) => setNewStoreName(e.target.value)}
+                        placeholder="Enter store name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="store-company">Company</Label>
+                      <Select value={newStoreCompany} onValueChange={setNewStoreCompany}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="store-brand">Brand (Optional)</Label>
+                      <Select value={newStoreBrand} onValueChange={setNewStoreBrand}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select brand" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Brand</SelectItem>
+                          {brands.filter(brand => brand.company_id === newStoreCompany).map((brand) => (
+                            <SelectItem key={brand.id} value={brand.id}>
+                              {brand.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowStoreDialog(false)}>Cancel</Button>
+                      <Button onClick={handleCreateStore}>Create</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stores.map((store) => (
+                  <TableRow key={store.id}>
+                    <TableCell className="font-medium">{store.name}</TableCell>
+                    <TableCell>{store.companies?.name}</TableCell>
+                    <TableCell>{store.brands?.name || 'No Brand'}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteStore(store.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Employees Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Employees
+                </CardTitle>
+                <CardDescription>Manage employees within stores</CardDescription>
+              </div>
+              <Dialog open={showEmployeeDialog} onOpenChange={setShowEmployeeDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Employee
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Employee</DialogTitle>
+                    <DialogDescription>Create a new employee within a store</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="employee-name">Employee Name</Label>
+                      <Input
+                        id="employee-name"
+                        value={newEmployeeName}
+                        onChange={(e) => setNewEmployeeName(e.target.value)}
+                        placeholder="Enter employee name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="employee-store">Store</Label>
+                      <Select value={newEmployeeStore} onValueChange={setNewEmployeeStore}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select store" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {stores.map((store) => (
+                            <SelectItem key={store.id} value={store.id}>
+                              {store.name} ({store.companies?.name})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="employee-hiring-date">Hiring Date</Label>
+                      <Input
+                        id="employee-hiring-date"
+                        type="date"
+                        value={newEmployeeHiringDate}
+                        onChange={(e) => setNewEmployeeHiringDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowEmployeeDialog(false)}>Cancel</Button>
+                      <Button onClick={handleCreateEmployee}>Create</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Store</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Hiring Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell className="font-medium">{employee.name}</TableCell>
+                    <TableCell>{employee.stores?.name}</TableCell>
+                    <TableCell>{employee.companies?.name}</TableCell>
+                    <TableCell>{new Date(employee.hiring_date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteEmployee(employee.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Users Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Users
+                </CardTitle>
+                <CardDescription>Manage user accounts and permissions</CardDescription>
+              </div>
+              <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogDescription>Create a new user account with specific role and permissions</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-name">Full Name</Label>
+                        <Input
+                          id="user-name"
+                          value={newUserName}
+                          onChange={(e) => setNewUserName(e.target.value)}
+                          placeholder="Enter full name"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-email">Email</Label>
+                        <Input
+                          id="user-email"
+                          type="email"
+                          value={newUserEmail}
+                          onChange={(e) => setNewUserEmail(e.target.value)}
+                          placeholder="Enter email address"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="user-password">Password</Label>
+                      <Input
+                        id="user-password"
+                        type="password"
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value)}
+                        placeholder="Enter password"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="user-role">Role</Label>
+                      <Select value={newUserRole} onValueChange={(value: any) => setNewUserRole(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="company_manager">Company Manager</SelectItem>
+                          <SelectItem value="brand_manager">Brand Manager</SelectItem>
+                          <SelectItem value="store_manager">Store Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {newUserRole === 'company_manager' && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-company">Company</Label>
+                        <Select value={newUserCompany} onValueChange={setNewUserCompany}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select company" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {companies.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {newUserRole === 'brand_manager' && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-brand">Brand</Label>
+                        <Select value={newUserBrand} onValueChange={setNewUserBrand}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select brand" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.id}>
+                                {brand.name} ({brand.companies?.name})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {newUserRole === 'store_manager' && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-store">Store</Label>
+                        <Select value={newUserStore} onValueChange={setNewUserStore}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select store" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stores.map((store) => (
+                              <SelectItem key={store.id} value={store.id}>
+                                {store.name} ({store.companies?.name})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowUserDialog(false)}>Cancel</Button>
+                      <Button onClick={handleCreateUser}>Create</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Assignment</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {profiles.map((profile) => (
+                  <TableRow key={profile.id}>
+                    <TableCell className="font-medium">{profile.full_name}</TableCell>
+                    <TableCell>{profile.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={profile.role === 'admin' ? 'destructive' : 'outline'}>
+                        {profile.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {profile.role === 'company_manager' && profile.companies?.name}
+                      {profile.role === 'brand_manager' && (
+                        profile.assignedBrands?.length > 0 
+                          ? profile.assignedBrands.join(', ')
+                          : profile.brands?.name || 'No brands assigned'
+                      )}
+                      {profile.role === 'store_manager' && profile.stores?.name}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteProfile && handleDeleteProfile(profile.id, profile.user_id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
