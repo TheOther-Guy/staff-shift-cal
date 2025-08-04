@@ -196,7 +196,12 @@ export default function Dashboard() {
 
   const availableEmployees = useMemo(() => {
     const storeIds = availableStores.map(store => store.id);
-    return employees.filter(emp => storeIds.includes(emp.store_id));
+    const filteredEmployees = employees.filter(emp => storeIds.includes(emp.store_id));
+    console.log('Debug: availableStores:', availableStores);
+    console.log('Debug: employees:', employees);
+    console.log('Debug: storeIds:', storeIds);
+    console.log('Debug: filteredEmployees:', filteredEmployees);
+    return filteredEmployees;
   }, [employees, availableStores]);
 
   const handleClearFilters = () => {
