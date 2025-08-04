@@ -156,7 +156,31 @@ export default function Admin() {
         .select('*, companies!profiles_company_id_fkey(name), brands!profiles_brand_id_fkey(name), stores!profiles_store_id_fkey(name)')
         .order('full_name');
       if (profilesError) throw profilesError;
-      setProfiles(profilesData as any || []);
+
+      // Fetch user brands for brand managers
+      const profilesWithBrands = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          if (profile.role === 'brand_manager') {
+            const { data: userBrandsData } = await supabase
+              .from('user_brands')
+              .select(`
+                brand_id,
+                brands!inner (
+                  name
+                )
+              `)
+              .eq('user_id', profile.user_id);
+            
+            return {
+              ...profile,
+              assignedBrands: userBrandsData?.map(ub => (ub as any).brands?.name).filter(Boolean) || []
+            };
+          }
+          return profile;
+        })
+      );
+
+      setProfiles(profilesWithBrands as any || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
