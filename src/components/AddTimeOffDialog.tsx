@@ -150,8 +150,7 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
     // Create approval request and send email
     await createApprovalRequest(entry);
 
-    // Also add to local state for immediate feedback
-    onAddEntry(entry);
+    // Note: Entry will be added to calendar only after approval
 
     // Reset form
     setDateRange(undefined);

@@ -68,6 +68,25 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response("Failed to update approval request", { status: 500 });
     }
 
+    // If approved, create the actual time-off entry
+    if (action === 'approve') {
+      const requestData = approvalRequest.request_data;
+      const { error: timeOffError } = await supabase
+        .from('time_off_entries')
+        .insert({
+          employee_id: requestData.employeeId,
+          start_date: requestData.startDate,
+          end_date: requestData.endDate,
+          type: requestData.type,
+          notes: requestData.notes,
+          status: 'approved'
+        });
+
+      if (timeOffError) {
+        console.error('Error creating time-off entry:', timeOffError);
+      }
+    }
+
     console.log(`Approval request ${approvalId} ${action}d successfully`);
 
     // Return success page
