@@ -487,7 +487,10 @@ export default function Admin() {
         });
 
         console.log('Create user response:', userData, createError);
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Create user error details:', createError);
+          throw new Error(`Failed to create user: ${createError.message}`);
+        }
       }
 
 
@@ -507,9 +510,14 @@ export default function Admin() {
       setShowApprovalDialog(false);
       setSelectedRequest(null);
       toast({ title: "Success", description: "User account created and approved successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving request:', error);
-      toast({ title: "Error", description: "Failed to approve request", variant: "destructive" });
+      const errorMessage = error.message || 'Failed to approve request';
+      toast({ 
+        title: "Error", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
     }
   };
 
@@ -542,7 +550,18 @@ export default function Admin() {
   };
 
   const handleApprovalSubmit = () => {
-    if (!selectedRequest || !approvalRole) return;
+    if (!selectedRequest || !approvalRole) {
+      toast({ title: "Error", description: "Please select a role", variant: "destructive" });
+      return;
+    }
+    
+    console.log('Submitting approval with:', {
+      requestId: selectedRequest.id,
+      role: approvalRole,
+      company: approvalCompany,
+      brand: approvalBrand,
+      store: approvalStore
+    });
     
     handleApproveRequest(
       selectedRequest.id, 
