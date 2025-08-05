@@ -68,22 +68,42 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response("Failed to update approval request", { status: 500 });
     }
 
-    // If approved, create the actual time-off entry
+    // Handle different approval types
     if (action === 'approve') {
       const requestData = approvalRequest.request_data;
-      const { error: timeOffError } = await supabase
-        .from('time_off_entries')
-        .insert({
-          employee_id: requestData.employeeId,
-          start_date: requestData.startDate,
-          end_date: requestData.endDate,
-          type: requestData.type,
-          notes: requestData.notes,
-          status: 'approved'
-        });
+      
+      if (approvalRequest.type === 'profile_creation') {
+        // Handle profile creation approval - update profile with brand/company assignments
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            company_id: requestData.company_id,
+            brand_id: requestData.brand_id,
+            store_id: requestData.store_id // if applicable
+          })
+          .eq('user_id', requestData.user_id);
 
-      if (timeOffError) {
-        console.error('Error creating time-off entry:', timeOffError);
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+        } else {
+          console.log('Profile updated with company/brand assignments');
+        }
+      } else {
+        // Handle time-off approval - create time-off entry
+        const { error: timeOffError } = await supabase
+          .from('time_off_entries')
+          .insert({
+            employee_id: requestData.employeeId,
+            start_date: requestData.startDate,
+            end_date: requestData.endDate,
+            type: requestData.type,
+            notes: requestData.notes,
+            status: 'approved'
+          });
+
+        if (timeOffError) {
+          console.error('Error creating time-off entry:', timeOffError);
+        }
       }
     }
 
