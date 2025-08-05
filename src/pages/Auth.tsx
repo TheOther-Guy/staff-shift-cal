@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { resetAdminPassword } from '@/utils/resetAdminPassword';
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -161,6 +162,29 @@ export default function Auth() {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <div className="p-6 pt-0">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={async () => {
+              const result = await resetAdminPassword();
+              if (result.success) {
+                toast({
+                  title: "Password Reset",
+                  description: "Admin password has been reset to 123456789",
+                });
+              } else {
+                toast({
+                  title: "Error",
+                  description: result.error,
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
+            Reset Admin Password (Dev Only)
+          </Button>
+        </div>
       </Card>
     </div>
   );
