@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     // Create the profile
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
+      .upsert({
         user_id: authData.user.id,
         email,
         full_name,
@@ -96,6 +96,8 @@ Deno.serve(async (req) => {
         company_id: company_id || null,
         brand_id: brand_id || null,
         store_id: store_id || null
+      }, {
+        onConflict: 'user_id'
       })
 
     if (profileError) throw profileError

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +71,14 @@ export default function Admin() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [approvalRequests, setApprovalRequests] = useState<any[]>([]);
+  
+  // Approval dialog state
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [approvalRole, setApprovalRole] = useState('');
+  const [approvalCompany, setApprovalCompany] = useState('');
+  const [approvalBrand, setApprovalBrand] = useState('');
+  const [approvalStore, setApprovalStore] = useState('');
   
   // Dialog states
   const [showCompanyDialog, setShowCompanyDialog] = useState(false);
@@ -429,7 +437,7 @@ export default function Admin() {
     }
   };
 
-  const handleApproveRequest = async (requestId: string) => {
+  const handleApproveRequest = async (requestId: string, role: string, companyId?: string, brandId?: string, storeId?: string) => {
     try {
       // Get the approval request details
       const { data: request, error: fetchError } = await supabase
@@ -448,7 +456,10 @@ export default function Admin() {
           email: requestData.email,
           password: requestData.password,
           full_name: requestData.full_name,
-          role: requestData.role || 'store_manager'
+          role: role,
+          company_id: companyId,
+          brand_id: brandId,
+          store_id: storeId
         }
       });
 
@@ -467,6 +478,8 @@ export default function Admin() {
       if (updateError) throw updateError;
 
       fetchData();
+      setShowApprovalDialog(false);
+      setSelectedRequest(null);
       toast({ title: "Success", description: "User account created and approved successfully" });
     } catch (error) {
       console.error('Error approving request:', error);
@@ -491,6 +504,27 @@ export default function Admin() {
       console.error('Error rejecting request:', error);
       toast({ title: "Error", description: "Failed to reject request", variant: "destructive" });
     }
+  };
+
+  const openApprovalDialog = (request: any) => {
+    setSelectedRequest(request);
+    setApprovalRole('store_manager'); // Default role
+    setApprovalCompany('');
+    setApprovalBrand('');
+    setApprovalStore('');
+    setShowApprovalDialog(true);
+  };
+
+  const handleApprovalSubmit = () => {
+    if (!selectedRequest || !approvalRole) return;
+    
+    handleApproveRequest(
+      selectedRequest.id, 
+      approvalRole, 
+      approvalCompany || undefined,
+      approvalBrand || undefined, 
+      approvalStore || undefined
+    );
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -555,15 +589,15 @@ export default function Admin() {
                       </TableCell>
                       <TableCell>{request.request_data?.company || 'N/A'}</TableCell>
                       <TableCell>{new Date(request.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleApproveRequest(request.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            Approve
-                          </Button>
+                       <TableCell>
+                         <div className="flex gap-2">
+                           <Button 
+                             size="sm" 
+                             onClick={() => openApprovalDialog(request)}
+                             className="bg-green-600 hover:bg-green-700"
+                           >
+                             Approve
+                           </Button>
                           <Button 
                             size="sm" 
                             variant="destructive"
@@ -576,10 +610,113 @@ export default function Admin() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+               </Table>
             </CardContent>
           </Card>
         )}
+
+        {/* Approval Dialog */}
+        <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Approve User Account</DialogTitle>
+              <DialogDescription>
+                Assign role and organizational structure for {selectedRequest?.request_data?.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={approvalRole} onValueChange={setApprovalRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    <SelectItem value="store_manager">Store Manager</SelectItem>
+                    <SelectItem value="brand_manager">Brand Manager</SelectItem>
+                    <SelectItem value="company_manager">Company Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(approvalRole === 'company_manager' || approvalRole === 'brand_manager' || approvalRole === 'store_manager') && (
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company</Label>
+                  <Select value={approvalCompany} onValueChange={setApprovalCompany}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select company" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border z-50">
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {(approvalRole === 'brand_manager' || approvalRole === 'store_manager') && approvalCompany && (
+                <div className="space-y-2">
+                  <Label htmlFor="brand">Brand</Label>
+                  <Select value={approvalBrand} onValueChange={setApprovalBrand}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select brand" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border z-50">
+                      {brands
+                        .filter(brand => brand.company_id === approvalCompany)
+                        .map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>
+                            {brand.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {approvalRole === 'store_manager' && approvalBrand && (
+                <div className="space-y-2">
+                  <Label htmlFor="store">Store</Label>
+                  <Select value={approvalStore} onValueChange={setApprovalStore}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select store" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border z-50">
+                      {stores
+                        .filter(store => store.brand_id === approvalBrand)
+                        .map((store) => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={handleApprovalSubmit}
+                  className="flex-1"
+                  disabled={!approvalRole || 
+                    (approvalRole !== 'admin' && !approvalCompany) ||
+                    ((approvalRole === 'brand_manager' || approvalRole === 'store_manager') && !approvalBrand) ||
+                    (approvalRole === 'store_manager' && !approvalStore)
+                  }
+                >
+                  Approve & Create Account
+                </Button>
+                <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-5">
