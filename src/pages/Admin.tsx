@@ -459,9 +459,12 @@ export default function Admin() {
           role: role,
           company_id: companyId,
           brand_id: brandId,
-          store_id: storeId
+          store_id: storeId,
+          request_approval: false // Important: Don't create approval request, create actual user
         }
       });
+
+      console.log('Create user response:', userData, createError);
 
       if (createError) throw createError;
 
