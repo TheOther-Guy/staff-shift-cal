@@ -431,16 +431,43 @@ export default function Admin() {
 
   const handleApproveRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
+      // Get the approval request details
+      const { data: request, error: fetchError } = await supabase
+        .from('approval_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+
+      const requestData = request.request_data as any;
+
+      // Create the actual user account using the create-user function
+      const { data: userData, error: createError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: requestData.email,
+          password: requestData.password,
+          full_name: requestData.full_name,
+          role: requestData.role || 'store_manager'
+        }
+      });
+
+      if (createError) throw createError;
+
+      // Update the approval request as approved
+      const { error: updateError } = await supabase
         .from('approval_requests')
         .update({ 
           status: 'approved',
-          approved_at: new Date().toISOString()
+          approved_at: new Date().toISOString(),
+          approver_id: profile?.user_id
         })
         .eq('id', requestId);
-      if (error) throw error;
+      
+      if (updateError) throw updateError;
+
       fetchData();
-      toast({ title: "Success", description: "Request approved successfully" });
+      toast({ title: "Success", description: "User account created and approved successfully" });
     } catch (error) {
       console.error('Error approving request:', error);
       toast({ title: "Error", description: "Failed to approve request", variant: "destructive" });
@@ -453,7 +480,8 @@ export default function Admin() {
         .from('approval_requests')
         .update({ 
           status: 'rejected',
-          rejected_at: new Date().toISOString()
+          rejected_at: new Date().toISOString(),
+          approver_id: profile?.user_id
         })
         .eq('id', requestId);
       if (error) throw error;
