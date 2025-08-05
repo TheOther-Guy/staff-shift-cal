@@ -450,8 +450,30 @@ export default function Admin() {
 
       const requestData = request.request_data as any;
 
-      // Create the actual user account using the create-user function
-      const { data: userData, error: createError } = await supabase.functions.invoke('create-user', {
+      // Check if user already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', requestData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // Update existing user's profile with new role/assignments
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            role: role as 'admin' | 'company_manager' | 'brand_manager' | 'store_manager',
+            company_id: companyId || null,
+            brand_id: brandId || null,
+            store_id: storeId || null
+          })
+          .eq('email', requestData.email);
+
+        if (updateError) throw updateError;
+        console.log('Updated existing user profile');
+      } else {
+        // Create new user account
+        const { data: userData, error: createError } = await supabase.functions.invoke('create-user', {
         body: {
           email: requestData.email,
           password: requestData.password,
@@ -462,11 +484,12 @@ export default function Admin() {
           store_id: storeId,
           request_approval: false // Important: Don't create approval request, create actual user
         }
-      });
+        });
 
-      console.log('Create user response:', userData, createError);
+        console.log('Create user response:', userData, createError);
+        if (createError) throw createError;
+      }
 
-      if (createError) throw createError;
 
       // Update the approval request as approved
       const { error: updateError } = await supabase
