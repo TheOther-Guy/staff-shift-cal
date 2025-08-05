@@ -25,8 +25,11 @@ Deno.serve(async (req) => {
 
     const { email, password, full_name, role, company_id, brand_id, brand_ids = [], store_id, request_approval = false } = await req.json()
 
+    console.log('Create user request:', { email, request_approval, role });
+
     // If requesting approval, create approval request instead of user
     if (request_approval) {
+      console.log('Creating approval request for:', email);
       // Create approval request
       const { error: approvalError } = await supabaseAdmin
         .from('approval_requests')
