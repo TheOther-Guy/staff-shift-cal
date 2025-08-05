@@ -57,25 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .or(`request_data->>'email'.eq.${session.user.email}`)
                 .maybeSingle();
 
-              if (pendingRequest) {
-                // Don't create profile - user needs admin approval
-                console.log('User has pending approval request, not creating profile automatically');
-                setProfile(null);
-              } else {
-                // Profile doesn't exist and no pending request, create one (for existing users)
-                const { data: newProfile } = await supabase
-                  .from('profiles')
-                  .insert({
-                    user_id: session.user.id,
-                    email: session.user.email || '',
-                    full_name: session.user.user_metadata?.full_name || session.user.email || '',
-                    role: 'store_manager' as const
-                  })
-                  .select()
-                  .single();
-                
-                setProfile(newProfile);
-              }
+              // Don't create profile automatically - all new users must go through approval
+              console.log('User has no profile and needs approval');
+              setProfile(null);
             } else {
               setProfile(profileData);
             }
@@ -112,25 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .or(`request_data->>'email'.eq.${session.user.email}`)
               .maybeSingle();
 
-            if (pendingRequest) {
-              // Don't create profile - user needs admin approval
-              console.log('User has pending approval request, not creating profile automatically');
-              setProfile(null);
-            } else {
-              // Profile doesn't exist and no pending request, create one (for existing users)
-              const { data: newProfile } = await supabase
-                .from('profiles')
-                .insert({
-                  user_id: session.user.id,
-                  email: session.user.email || '',
-                  full_name: session.user.user_metadata?.full_name || session.user.email || '',
-                  role: 'store_manager' as const
-                })
-                .select()
-                .single();
-              
-              setProfile(newProfile);
-            }
+            // Don't create profile automatically - all new users must go through approval
+            console.log('User has no profile and needs approval');
+            setProfile(null);
           } else {
             setProfile(profileData);
           }
