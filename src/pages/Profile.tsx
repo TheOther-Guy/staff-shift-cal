@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { profileUpdateSchema } from '@/lib/validationSchemas';
 
 interface Company {
   id: string;
@@ -74,11 +75,18 @@ export default function Profile() {
     if (!profile) return;
 
     try {
+      // Validate input data
+      const validatedData = profileUpdateSchema.parse({
+        full_name: formData.full_name,
+        email: formData.email,
+      });
+
+      // Only update non-sensitive fields - role is excluded for security
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: formData.full_name,
-          email: formData.email,
+          full_name: validatedData.full_name,
+          email: validatedData.email,
           company_id: formData.company_id || null,
           store_id: formData.store_id || null
         })
@@ -93,11 +101,26 @@ export default function Profile() {
       });
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
+      
+      if (error instanceof Error && 'issues' in error) {
+        // Zod validation error
+        const validationError = error as any;
+        const errorMessage = validationError.issues
+          .map((issue: any) => issue.message)
+          .join(", ");
+        
+        toast({
+          title: "Validation Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update profile",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -165,8 +188,10 @@ export default function Profile() {
                 <Input
                   id="full_name"
                   value={formData.full_name}
+                  maxLength={100}
                   onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                   disabled={!isEditing}
+                  placeholder="Enter your full name"
                 />
               </div>
               
@@ -174,9 +199,12 @@ export default function Profile() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  type="email"
                   value={formData.email}
+                  maxLength={254}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   disabled={!isEditing}
+                  placeholder="Enter your email address"
                 />
               </div>
               
