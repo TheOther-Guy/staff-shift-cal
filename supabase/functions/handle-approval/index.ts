@@ -76,22 +76,41 @@ const handler = async (req: Request): Promise<Response> => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Request ${actionText}</title>
+          <title>Thank you</title>
           <style>
-            body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
-            .success { color: #28a745; }
-            .error { color: #dc3545; }
-            .card { background: #f8f9fa; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            body { 
+              font-family: Arial, sans-serif; 
+              max-width: 400px; 
+              margin: 100px auto; 
+              padding: 40px; 
+              text-align: center; 
+              background-color: #f8f9fa;
+            }
+            .message { 
+              background: white; 
+              padding: 40px; 
+              border-radius: 12px; 
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            }
+            .success { color: #28a745; font-size: 48px; margin-bottom: 20px; }
+            .error { color: #dc3545; font-size: 48px; margin-bottom: 20px; }
+            h1 { margin: 0 0 10px 0; font-size: 24px; }
+            p { margin: 0; color: #666; font-size: 16px; }
           </style>
+          <script>
+            setTimeout(function() {
+              window.close();
+            }, 3000);
+          </script>
         </head>
         <body>
-          <div class="card">
-            <h1 class="${action === 'approve' ? 'success' : 'error'}">
-              Request ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}
-            </h1>
-            <p>The ${approvalRequest.type.replace('_', ' ')} request has been successfully ${actionText}.</p>
-            <p><strong>Request ID:</strong> ${approvalId}</p>
-            <p><strong>Action taken:</strong> ${new Date().toLocaleString()}</p>
+          <div class="message">
+            <div class="${action === 'approve' ? 'success' : 'error'}">
+              ${action === 'approve' ? '✓' : '✗'}
+            </div>
+            <h1>Thank you!</h1>
+            <p>Your response has been recorded.</p>
+            <p style="margin-top: 20px; font-size: 14px; color: #999;">This window will close automatically...</p>
           </div>
         </body>
       </html>
