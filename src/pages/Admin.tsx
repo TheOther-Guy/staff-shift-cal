@@ -78,6 +78,7 @@ export default function Admin() {
   const [approvalRole, setApprovalRole] = useState('');
   const [approvalCompany, setApprovalCompany] = useState('');
   const [approvalBrand, setApprovalBrand] = useState('');
+  const [approvalBrands, setApprovalBrands] = useState<string[]>([]);
   const [approvalStore, setApprovalStore] = useState('');
   
   // Dialog states
@@ -437,7 +438,7 @@ export default function Admin() {
     }
   };
 
-  const handleApproveRequest = async (requestId: string, role: string, companyId?: string, brandId?: string, storeId?: string) => {
+  const handleApproveRequest = async (requestId: string, role: string, companyId?: string, brandId?: string, storeId?: string, brandIds?: string[]) => {
     try {
       // Get the approval request details
       const { data: request, error: fetchError } = await supabase
@@ -481,6 +482,7 @@ export default function Admin() {
           role: role,
           company_id: companyId,
           brand_id: brandId,
+          brand_ids: brandIds || [],
           store_id: storeId,
           request_approval: false // Important: Don't create approval request, create actual user
         }
@@ -545,6 +547,7 @@ export default function Admin() {
     setApprovalRole('store_manager'); // Default role
     setApprovalCompany('');
     setApprovalBrand('');
+    setApprovalBrands([]);
     setApprovalStore('');
     setShowApprovalDialog(true);
   };
@@ -560,6 +563,7 @@ export default function Admin() {
       role: approvalRole,
       company: approvalCompany,
       brand: approvalBrand,
+      brands: approvalBrands,
       store: approvalStore
     });
     
@@ -568,7 +572,8 @@ export default function Admin() {
       approvalRole, 
       approvalCompany || undefined,
       approvalBrand || undefined, 
-      approvalStore || undefined
+      approvalStore || undefined,
+      approvalRole === 'brand_manager' ? approvalBrands : undefined
     );
   };
 
@@ -703,7 +708,7 @@ export default function Admin() {
                 </div>
               )}
 
-              {(approvalRole === 'brand_manager' || approvalRole === 'store_manager') && approvalCompany && (
+              {approvalRole === 'store_manager' && approvalCompany && (
                 <div className="space-y-2">
                   <Label htmlFor="brand">Brand</Label>
                   <Select value={approvalBrand} onValueChange={setApprovalBrand}>
@@ -720,6 +725,36 @@ export default function Admin() {
                         ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {approvalRole === 'brand_manager' && approvalCompany && (
+                <div className="space-y-2">
+                  <Label htmlFor="brands">Brands (Multi-select)</Label>
+                  <div className="border rounded-md p-2 max-h-32 overflow-y-auto">
+                    {brands
+                      .filter(brand => brand.company_id === approvalCompany)
+                      .map((brand) => (
+                        <div key={brand.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`brand-${brand.id}`}
+                            checked={approvalBrands.includes(brand.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setApprovalBrands([...approvalBrands, brand.id]);
+                              } else {
+                                setApprovalBrands(approvalBrands.filter(id => id !== brand.id));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <label htmlFor={`brand-${brand.id}`} className="text-sm">
+                            {brand.name}
+                          </label>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
 
@@ -749,8 +784,8 @@ export default function Admin() {
                   className="flex-1"
                   disabled={!approvalRole || 
                     (approvalRole !== 'admin' && !approvalCompany) ||
-                    ((approvalRole === 'brand_manager' || approvalRole === 'store_manager') && !approvalBrand) ||
-                    (approvalRole === 'store_manager' && !approvalStore)
+                    (approvalRole === 'store_manager' && (!approvalBrand || !approvalStore)) ||
+                    (approvalRole === 'brand_manager' && approvalBrands.length === 0)
                   }
                 >
                   Approve & Create Account

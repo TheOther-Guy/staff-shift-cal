@@ -39,7 +39,11 @@ Deno.serve(async (req) => {
             email,
             password,
             full_name,
-            role: role || 'store_manager'
+            role: role || 'store_manager',
+            company_id,
+            brand_id,
+            brand_ids,
+            store_id
           },
           status: 'pending'
         })
