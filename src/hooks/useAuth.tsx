@@ -48,19 +48,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .maybeSingle();
             
             if (!profileData && !error) {
-              // Profile doesn't exist, create one
-              const { data: newProfile } = await supabase
-                .from('profiles')
-                .insert({
-                  user_id: session.user.id,
-                  email: session.user.email || '',
-                  full_name: session.user.user_metadata?.full_name || session.user.email || '',
-                  role: 'store_manager' as const
-                })
-                .select()
-                .single();
-              
-              setProfile(newProfile);
+              // Check if there's a pending approval request for this email
+              const { data: pendingRequest } = await supabase
+                .from('approval_requests')
+                .select('*')
+                .eq('type', 'profile_creation')
+                .eq('status', 'pending')
+                .or(`request_data->>'email'.eq.${session.user.email}`)
+                .maybeSingle();
+
+              if (pendingRequest) {
+                // Don't create profile - user needs admin approval
+                console.log('User has pending approval request, not creating profile automatically');
+                setProfile(null);
+              } else {
+                // Profile doesn't exist and no pending request, create one (for existing users)
+                const { data: newProfile } = await supabase
+                  .from('profiles')
+                  .insert({
+                    user_id: session.user.id,
+                    email: session.user.email || '',
+                    full_name: session.user.user_metadata?.full_name || session.user.email || '',
+                    role: 'store_manager' as const
+                  })
+                  .select()
+                  .single();
+                
+                setProfile(newProfile);
+              }
             } else {
               setProfile(profileData);
             }
@@ -88,19 +103,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .maybeSingle();
           
           if (!profileData && !error) {
-            // Profile doesn't exist, create one
-            const { data: newProfile } = await supabase
-              .from('profiles')
-              .insert({
-                user_id: session.user.id,
-                email: session.user.email || '',
-                full_name: session.user.user_metadata?.full_name || session.user.email || '',
-                role: 'store_manager' as const
-              })
-              .select()
-              .single();
-            
-            setProfile(newProfile);
+            // Check if there's a pending approval request for this email
+            const { data: pendingRequest } = await supabase
+              .from('approval_requests')
+              .select('*')
+              .eq('type', 'profile_creation')
+              .eq('status', 'pending')
+              .or(`request_data->>'email'.eq.${session.user.email}`)
+              .maybeSingle();
+
+            if (pendingRequest) {
+              // Don't create profile - user needs admin approval
+              console.log('User has pending approval request, not creating profile automatically');
+              setProfile(null);
+            } else {
+              // Profile doesn't exist and no pending request, create one (for existing users)
+              const { data: newProfile } = await supabase
+                .from('profiles')
+                .insert({
+                  user_id: session.user.id,
+                  email: session.user.email || '',
+                  full_name: session.user.user_metadata?.full_name || session.user.email || '',
+                  role: 'store_manager' as const
+                })
+                .select()
+                .single();
+              
+              setProfile(newProfile);
+            }
           } else {
             setProfile(profileData);
           }
