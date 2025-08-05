@@ -23,9 +23,59 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { email, password, full_name, role, company_id, brand_id, brand_ids = [], store_id } = await req.json()
+    const { email, password, full_name, role, company_id, brand_id, brand_ids = [], store_id, request_approval = false } = await req.json()
 
-    // Create the user in auth
+    // If requesting approval, create approval request instead of user
+    if (request_approval) {
+      // Create approval request
+      const { error: approvalError } = await supabaseAdmin
+        .from('approval_requests')
+        .insert({
+          type: 'profile_creation',
+          request_data: {
+            email,
+            password,
+            full_name,
+            role: role || 'store_manager'
+          },
+          status: 'pending'
+        })
+
+      if (approvalError) throw approvalError
+
+      // Send notification email to admin
+      const { data: adminData } = await supabaseAdmin
+        .from('profiles')
+        .select('email')
+        .eq('role', 'admin')
+        .limit(1)
+        .single()
+
+      if (adminData?.email) {
+        await supabaseAdmin.functions.invoke('send-approval-email', {
+          body: {
+            type: 'profile_creation',
+            to: adminData.email,
+            from: email,
+            data: {
+              full_name,
+              email,
+              role: role || 'store_manager'
+            }
+          }
+        })
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Approval request created' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
+
+    // Create the user in auth (only if not requesting approval)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,

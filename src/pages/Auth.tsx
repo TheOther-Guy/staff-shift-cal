@@ -61,7 +61,7 @@ export default function Auth() {
     const password = formData.get('password') as string;
     const fullName = formData.get('fullName') as string;
 
-    const { error } = await signUp(email, password, fullName);
+    const { error, data } = await signUp(email, password, fullName);
 
     if (error) {
       toast({
@@ -69,10 +69,18 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
+    } else if (data?.needsApproval) {
+      toast({
+        title: "Account Pending Approval",
+        description: "Your account request has been submitted. An administrator will review and approve your account soon.",
+        duration: 5000,
+      });
+      // Reset form
+      (e.target as HTMLFormElement).reset();
     } else {
       toast({
         title: "Success",
-        description: "Account created! Please check your email for verification.",
+        description: "Account created successfully!",
       });
     }
 

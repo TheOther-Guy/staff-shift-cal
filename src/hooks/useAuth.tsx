@@ -19,7 +19,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; data?: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -122,19 +122,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName
+    try {
+      // Create approval request instead of direct signup
+      const { data, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email,
+          password,
+          full_name: fullName,
+          role: 'store_manager', // Default role
+          request_approval: true // Flag to create approval request instead of direct user
         }
+      });
+
+      if (functionError) {
+        return { error: functionError };
       }
-    });
-    return { error };
+
+      return { error: null, data: { needsApproval: true } };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Signup failed' } };
+    }
   };
 
   const signOut = async () => {
