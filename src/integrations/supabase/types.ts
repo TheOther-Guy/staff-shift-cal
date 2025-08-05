@@ -358,6 +358,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      reset_admin_password_temp: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       user_role:
