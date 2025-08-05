@@ -58,19 +58,29 @@ export function AddTimeOffDialog({ stores, employees, selectedStore, onAddEntry 
       const employee = employees.find(emp => emp.id === entry.employeeId);
       if (!employee || !user) return;
 
-      // Get brand manager for approval (simplified - get first admin)
-      const { data: admins } = await supabase
-        .from('profiles')
-        .select('user_id, email, full_name')
-        .eq('role', 'admin')
-        .limit(1);
+      // Get the appropriate approver using the database function
+      const { data: approverIdData, error: approverError } = await supabase
+        .rpc('get_time_off_approver', { employee_id: entry.employeeId });
 
-      if (!admins || admins.length === 0) {
-        toast.error('No admin found for approval');
+      if (approverError || !approverIdData) {
+        console.error('Error getting approver:', approverError);
+        toast.error('No approver found for this employee');
         return;
       }
 
-      const approver = admins[0];
+      // Get approver details
+      const { data: approverData } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .eq('user_id', approverIdData)
+        .single();
+
+      if (!approverData) {
+        toast.error('Approver details not found');
+        return;
+      }
+
+      const approver = approverData;
 
       // Create approval request
       const { data: approvalData, error: approvalError } = await supabase
